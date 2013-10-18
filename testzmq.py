@@ -111,7 +111,8 @@ def bootstrap_address(hash):
     def print_history_address(history, total):
         print_history(hash, history, total)
 
-    addr = to_addr(hash)
+    addr = to_hash160(hash)
+    #print len(addr)
     c.fetch_history(addr, print_history_address)
     c.subscribe_address(addr)
 

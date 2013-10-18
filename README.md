@@ -1,6 +1,8 @@
 Obelisk zmq native client
 ===============================
 
+Python native client for the obelisk blockchain server.
+
 
 Dependencies:
 ------------------
@@ -9,3 +11,13 @@ Dependencies:
  * python-zmqproto
 
 
+Notes:
+------------------
+Don't forget to check out these other python projects:
+
+ * electrum
+ * pybitcointools
+
+--
+
+unsystem dev

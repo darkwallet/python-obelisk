@@ -6,7 +6,7 @@ def to_addr(hash):
     return bitcoin.hash_160_to_bc_address(hash)
 
 def to_hash160(hash):
-    return bitcoin.bc_address_to_hash_160(hash)
+    return bitcoin.bc_address_to_hash_160(hash)[1]
 
 
 class Wallet(object):
