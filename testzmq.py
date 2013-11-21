@@ -8,10 +8,13 @@ from twisted.internet import reactor
 from zmqbase import to_btc, btc, age
 from zmqbase import ClientBase, checksum, MAX_UINT32
 
-from btclib import to_hash160, to_addr
+from btclib import to_hash160, to_addr, BlockHeader
+
+def unpack_error(data):
+    return struct.unpack_from('<I', data, 0)[0]
 
 class ObeliskOfLightClient(ClientBase):
-    valid_messages = ['fetch_history', 'subscribe', 'fetch_last_height', 'update', 'renew']
+    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe', 'fetch_last_height', 'update', 'renew']
     subscribed = 0
     # Command implementations
     def renew_address(self, address):
@@ -35,6 +38,10 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('address.subscribe', data)
         reactor.callLater(120, self.renew_address, address)
 
+    def fetch_block_header(self, blk_hash, cb):
+        data = blk_hash[::-1]
+        self.send_command('blockchain.fetch_block_header', data, cb)
+
     def fetch_history(self, address, cb):
         # prepare parameters
         data = struct.pack('B', 0)            # address version
@@ -48,8 +55,14 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('blockchain.fetch_last_height', cb=cb)
 
     # receive handlers
+    def on_fetch_block_header(self, data):
+        error = unpack_error(data)
+        assert len(data[4:]) == 80
+        header = BlockHeader.deserialize(data[4:])
+        return (header,)
+
     def on_fetch_history(self, data):
-        error = struct.unpack_from('<I', data, 0)[0]
+        error = unpack_error(data)
         # parse results
         rows = self.unpack_table("<32sIIQ32sII", data, 4)
 
@@ -64,7 +77,7 @@ class ObeliskOfLightClient(ClientBase):
         
     def on_subscribe(self, data):
         self.subscribed += 1
-        error = struct.unpack_from('<I', data, 0)[0]
+        error = unpack_error(data)
         if error:
             print "Error subscribing"
         if not self.subscribed%1000:
@@ -75,7 +88,7 @@ class ObeliskOfLightClient(ClientBase):
 
     def on_renew(self, data):
         self.subscribed += 1
-        error = struct.unpack_from('<I', data, 0)[0]
+        error = unpack_error(data)
         if error:
             print "Error subscribing"
         if not self.subscribed%1000:
@@ -90,6 +103,15 @@ def print_height(data):
     global height
     print 'height', data
     height = data
+
+def print_blk_header(header):
+    print 'version', header.version
+    print 'previous block hash', header.previous_block_hash.encode("hex")
+    print 'merkle', header.merkle.encode("hex")
+    print 'timestamp', header.timestamp
+    print 'bits', header.bits
+    print 'nonce', header.nonce
+    print header
 
 def print_history(address, history, total):
     global height
@@ -120,8 +142,12 @@ def dummy(*args):
     pass
 
 if __name__ == '__main__':
-    c = ObeliskOfLightClient('tcp://192.168.1.171:9091')
+    c = ObeliskOfLightClient('tcp://37.139.11.99:9091')
     c.fetch_last_height(print_height)
+    blk_hash = "000000000000000471988cc24941335b" \
+               "91d35d646971b7de682b4236dc691919".decode("hex")
+    assert len(blk_hash) == 32
+    c.fetch_block_header(blk_hash, print_blk_header)
 
     addresses = ['1Evy47MqD82HGx6n1KHkHwBgCwbsbQQT8m', '1GUUpMm899Tr1w5mMvwnXcxbs77fmspTVC']
     if os.path.exists('addresses.txt'):
