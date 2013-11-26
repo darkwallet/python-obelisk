@@ -939,6 +939,9 @@ class HighDefWallet:
         mpk, mpk_compressed = get_pubkeys_from_secret(secret)
         return HighDefWallet(secret, chain, mpk, mpk_compressed)
 
+    def branch_prime(self, n):
+        return self.branch(n + BIP32_PRIME)
+
     @staticmethod
     def root(seed):
         args = bip32_init(seed)
