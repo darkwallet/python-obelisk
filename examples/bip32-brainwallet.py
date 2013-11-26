@@ -1,4 +1,4 @@
-import bitcoin
+import obelisk
 
 def test_bip32(seed, sequence):
     """
@@ -6,7 +6,7 @@ def test_bip32(seed, sequence):
     see https://en.bitcoin.it/wiki/BIP_0032_TestVectors
     """
 
-    wallet = bitcoin.HighDefWallet.root(seed)
+    wallet = obelisk.HighDefWallet.root(seed)
         
     print "secret key", wallet.secret.encode('hex')
     print "chain code", wallet.chain.encode('hex')
