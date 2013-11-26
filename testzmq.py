@@ -38,8 +38,13 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('address.subscribe', data)
         reactor.callLater(120, self.renew_address, address)
 
-    def fetch_block_header(self, blk_hash, cb):
-        data = blk_hash[::-1]
+    def fetch_block_header(self, index, cb):
+        if type(index) == str:
+            data = index[::-1]
+        elif type(index) == int:
+            data = struct.pack('<I', index)
+        else:
+            raise ValueError("Unknown index type")
         self.send_command('blockchain.fetch_block_header', data, cb)
 
     def fetch_history(self, address, cb):
@@ -141,13 +146,23 @@ def bootstrap_address(hash):
 def dummy(*args):
     pass
 
+def poll_latest(client):
+    print "poll_latest..."
+    def last_height_fetched(height):
+        client.fetch_block_header(height, header_fetched)
+    def header_fetched(header):
+        print "Last:", header
+    client.fetch_last_height(last_height_fetched)
+    reactor.callLater(20, poll_latest, client)
+
 if __name__ == '__main__':
     c = ObeliskOfLightClient('tcp://37.139.11.99:9091')
-    c.fetch_last_height(print_height)
-    blk_hash = "000000000000000471988cc24941335b" \
-               "91d35d646971b7de682b4236dc691919".decode("hex")
-    assert len(blk_hash) == 32
-    c.fetch_block_header(blk_hash, print_blk_header)
+    #c.fetch_last_height(print_height)
+    #blk_hash = "000000000000000471988cc24941335b" \
+    #           "91d35d646971b7de682b4236dc691919".decode("hex")
+    #assert len(blk_hash) == 32
+    #c.fetch_block_header(blk_hash, print_blk_header)
+    #c.fetch_block_header(270778, print_blk_header)
 
     addresses = ['1Evy47MqD82HGx6n1KHkHwBgCwbsbQQT8m', '1GUUpMm899Tr1w5mMvwnXcxbs77fmspTVC']
     if os.path.exists('addresses.txt'):
@@ -158,5 +173,6 @@ if __name__ == '__main__':
 
     for hash in addresses:
         bootstrap_address(hash)
+    reactor.callLater(0, poll_latest, c)
     reactor.run()
 
