@@ -29,3 +29,63 @@ class BlockHeader:
     def __repr__(self):
         return '<BlockHeader %s>' % (self.hash.encode("hex"),)
 
+class TxOut(object):
+    def __init__(self):
+        self.value = None
+        self.script = None
+
+    def __repr__(self):
+        return "TxOut(value=%i.%08i script=%s)" % (self.value // 100000000, self.value % 100000000, self.script.encode("hex"))
+
+    def serialize(self):
+        return ser_txout(self)
+
+    @staticmethod
+    def deserialize(bytes):
+        return deser_txout(bytes)
+
+
+class TxIn(object):
+    def __init__(self):
+        self.previous_output = OutPoint()
+        self.script = None
+        self.sequence = 0xffffffff
+
+    def is_final(self):
+        return self.sequence == 0xffffffff
+
+    def __repr__(self):
+        return "TxIn(previous_output=%s script=%s sequence=%i)" % (repr(self.previous_output), self.script.encode("hex"))
+
+    def serialize(self):
+        return ser_txin(self)
+
+    @staticmethod
+    def deserialize(bytes):
+        return deser_txin(bytes)
+
+class Transaction:
+    def __init__(self):
+        self.version = 1
+        self.locktime = 0
+        self.inputs = []
+        self.outputs = []
+
+    def is_final(self):
+        for tin in self.vin:
+            if not tin.is_final():
+                return False
+        return True
+    def is_coinbase(self):
+        return len(self.vin) == 1 and self.vin[0].prevout.is_null()
+
+    def __repr__(self):
+        return "Transaction(version=%i inputs=%s outputs=%s locktime=%i)" % (self.version, repr(self.inputs), repr(self.outputs), self.locktime)
+
+    def serialize(self):
+        return ser_tx(self)
+
+    @staticmethod
+    def deserialize(bytes):
+        return deser_tx(bytes)
+

@@ -8,6 +8,9 @@ from zmqbase import ClientBase, checksum, MAX_UINT32
 
 from btclib import to_hash160, to_addr, BlockHeader
 
+import models
+import serialize
+
 def unpack_error(data):
     return struct.unpack_from('<I', data, 0)[0]
 
@@ -55,6 +58,9 @@ class ObeliskOfLightClient(ClientBase):
     def fetch_last_height(self, cb):
         self.send_command('blockchain.fetch_last_height', cb=cb)
 
+    def fetch_transaction(self, tx_hash, cb):
+        self.send_command('blockchain.fetch_transaction', tx_hash, cb)
+
     # receive handlers
     def on_fetch_block_header(self, data):
         error = unpack_error(data)
@@ -75,6 +81,9 @@ class ObeliskOfLightClient(ClientBase):
     def on_fetch_last_height(self, data):
         error, height = struct.unpack('<II', data)
         return (height,)
+
+    def on_fetch_transaction(self, data):
+        return serialize.deser_tx(data)
         
     def on_subscribe(self, data):
         self.subscribed += 1
