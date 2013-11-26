@@ -916,8 +916,33 @@ class Transaction:
         print_error(priority, threshold)
         return priority < threshold 
 
+class HighDefWallet:
 
+    def __init__(self, secret, chain, mpk, mpk_compressed):
+        self.secret, self.chain, self.mpk, self.mpk_compressed = \
+            secret, chain, mpk, mpk_compressed
 
+    @property
+    def key_id(self):
+        return hash_160(self.mpk_compressed)
+
+    @property
+    def address(self):
+        return hash_160_to_bc_address(self.key_id)
+
+    @property
+    def secret_key(self):
+        return SecretToASecret(self.secret, True)
+
+    def branch(self, n):
+        secret, chain = CKD(self.secret, self.chain, n)
+        mpk, mpk_compressed = get_pubkeys_from_secret(secret)
+        return HighDefWallet(secret, chain, mpk, mpk_compressed)
+
+    @staticmethod
+    def root(seed):
+        args = bip32_init(seed)
+        return HighDefWallet(*args)
 
 def test_bip32(seed, sequence):
     """
@@ -925,19 +950,15 @@ def test_bip32(seed, sequence):
     see https://en.bitcoin.it/wiki/BIP_0032_TestVectors
     """
 
-    master_secret, master_chain, master_public_key, master_public_key_compressed = bip32_init(seed)
+    wallet = HighDefWallet.root(seed)
         
-    print "secret key", master_secret.encode('hex')
-    print "chain code", master_chain.encode('hex')
+    print "secret key", wallet.secret.encode('hex')
+    print "chain code", wallet.chain.encode('hex')
 
-    key_id = hash_160(master_public_key_compressed)
-    print "keyid", key_id.encode('hex')
+    print "keyid", wallet.key_id.encode("hex")
     print "base58"
-    print "address", hash_160_to_bc_address(key_id)
-    print "secret key", SecretToASecret(master_secret, True)
-
-    k = master_secret
-    c = master_chain
+    print "address", wallet.address
+    print "secret key", wallet.secret_key
 
     s = ['m']
     for n in sequence.split('/'):
@@ -945,21 +966,17 @@ def test_bip32(seed, sequence):
         print "Chain [%s]" % '/'.join(s)
         
         n = int(n[:-1]) + BIP32_PRIME if n[-1] == "'" else int(n)
-        k0, c0 = CKD(k, c, n)
-        K0, K0_compressed = get_pubkeys_from_secret(k0)
+        wallet = wallet.branch(n)
 
         print "* Identifier"
-        print "  * (main addr)", hash_160_to_bc_address(hash_160(K0_compressed))
+        print "  * (main addr)", wallet.address
 
         print "* Secret Key"
-        print "  * (hex)", k0.encode('hex')
-        print "  * (wif)", SecretToASecret(k0, True)
+        print "  * (hex)", wallet.secret.encode("hex")
+        print "  * (wif)", wallet.secret_key
 
         print "* Chain Code"
-        print "   * (hex)", c0.encode('hex')
-
-        k = k0
-        c = c0
+        print "   * (hex)", wallet.chain.encode("hex")
     print "----"
 
         
