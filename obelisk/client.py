@@ -17,9 +17,8 @@ class ObeliskOfLightClient(ClientBase):
     # Command implementations
     def renew_address(self, address):
         # prepare parameters
-        data = struct.pack('B', 0)            # address version
-        data += address[::-1]   # address
-        #data += struct.pack('<I', 0)          # from_height
+        data = struct.pack('B', 0)          # address version
+        data += address[::-1]               # address
 
         # run command
         self.send_command('address.renew', data)
@@ -28,9 +27,8 @@ class ObeliskOfLightClient(ClientBase):
 
     def subscribe_address(self, address):
         # prepare parameters
-        data = struct.pack('B', 0)            # address version
-        data += address[::-1]   # address
-        #data += struct.pack('<I', 0)          # from_height
+        data = struct.pack('B', 0)          # address version
+        data += address[::-1]               # address
 
         # run command
         self.send_command('address.subscribe', data)
@@ -47,9 +45,9 @@ class ObeliskOfLightClient(ClientBase):
 
     def fetch_history(self, address, cb):
         # prepare parameters
-        data = struct.pack('B', 0)            # address version
-        data += address[::-1]   # address
-        data += struct.pack('<I', 0)          # from_height
+        data = struct.pack('B', 0)          # address version
+        data += address[::-1]               # address
+        data += struct.pack('<I', 0)        # from_height
 
         # run command
         self.send_command('address.fetch_history', data, cb)

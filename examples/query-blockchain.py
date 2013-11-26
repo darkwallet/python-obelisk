@@ -75,6 +75,7 @@ if __name__ == '__main__':
         f.close()
 
     for hash in addresses:
+        # Subscribe to an address to receive updates.
         bootstrap_address(hash)
     reactor.callLater(0, poll_latest, c)
     reactor.run()
