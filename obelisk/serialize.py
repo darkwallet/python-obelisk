@@ -48,6 +48,12 @@ def ser_string(s):
         return bchr(254) + struct.pack(b"<I", len(s)) + s
     return bchr(255) + struct.pack(b"<Q", len(s)) + s
 
+def deser_hash(f):
+    return f.read(32)[::-1]
+
+def ser_hash(h):
+    return h[::-1]
+
 def deser_uint256(f):
     r = 0
     for i in range(8):
@@ -92,16 +98,20 @@ def uint256_to_shortstr(u):
     s = "%064x" % (u,)
     return s[:16]
 
+def deser_variable_uint(f):
+    length = struct.unpack(b"<B", f.read(1))[0]
+    if length < 0xfd:
+        return length
+    elif length == 0xfd:
+        return struct.unpack(b"<H", f.read(2))[0]
+    elif length == 0xfe:
+        return struct.unpack(b"<I", f.read(4))[0]
+    return struct.unpack(b"<Q", f.read(8))[0]
+
 def deser_vector(f, c, arg1=None):
-    nit = struct.unpack(b"<B", f.read(1))[0]
-    if nit == 253:
-        nit = struct.unpack(b"<H", f.read(2))[0]
-    elif nit == 254:
-        nit = struct.unpack(b"<I", f.read(4))[0]
-    elif nit == 255:
-        nit = struct.unpack(b"<Q", f.read(8))[0]
+    count = deser_variable_uint(f)
     r = []
-    for i in range(nit):
+    for i in range(count):
         #if arg1 is not None:
         #    t = c(arg1)
         #else:
@@ -254,7 +264,7 @@ def deser_txout(f):
 
 def ser_txout(txout):
     r = b""
-    r += struct.pack(b"<q", models.TxOut.value)
+    r += struct.pack(b"<q", txout.value)
     r += ser_string(txout.script)
     return r
 
@@ -264,15 +274,15 @@ def deser_output_point(f):
         f = io.BytesIO(f)
 
     outpoint = models.OutPoint()
-    outpoint.hash = f.read(32)
-    outpoint.n = deser_uint32(f.read(4))
+    outpoint.hash = deser_hash(f)
+    outpoint.index = deser_uint32(f.read(4))
     return outpoint
 
 
 def ser_output_point(outpoint):
     r = b""
-    r += outpoint.hash
-    r += ser_uint32(outpoint.n)
+    r += ser_hash(outpoint.hash)
+    r += ser_uint32(outpoint.index)
     return r
 
 
@@ -328,8 +338,8 @@ def deser_tx(f):
 
     tx = models.Transaction()
     tx.version = deser_uint32(f.read(4))
-    tx.inputs = deser_vector(f, TxIn)
-    tx.outputs = deser_vector(f, TxOut)
+    tx.inputs = deser_vector(f, models.TxIn)
+    tx.outputs = deser_vector(f, models.TxOut)
     tx.locktime = deser_uint32(f)
     return tx
 

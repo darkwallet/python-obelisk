@@ -10,12 +10,17 @@ from btclib import to_hash160, to_addr, BlockHeader
 
 import models
 import serialize
+import error_code
 
 def unpack_error(data):
-    return struct.unpack_from('<I', data, 0)[0]
+    value = struct.unpack_from('<I', data, 0)[0]
+    return error_code.error_code.name_from_id(value)
 
 class ObeliskOfLightClient(ClientBase):
-    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe', 'fetch_last_height', 'update', 'renew']
+    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
+        'fetch_last_height', 'fetch_transaction', 'fetch_spend',
+        'update', 'renew']
+
     subscribed = 0
     # Command implementations
     def renew_address(self, address):
@@ -59,31 +64,39 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('blockchain.fetch_last_height', cb=cb)
 
     def fetch_transaction(self, tx_hash, cb):
-        self.send_command('blockchain.fetch_transaction', tx_hash, cb)
+        data = tx_hash[::-1]
+        self.send_command('blockchain.fetch_transaction', data, cb)
+
+    def fetch_spend(self, outpoint, cb):
+        data = outpoint.serialize()
+        self.send_command('blockchain.fetch_spend', data, cb)
 
     # receive handlers
     def on_fetch_block_header(self, data):
         error = unpack_error(data)
         assert len(data[4:]) == 80
         header = BlockHeader.deserialize(data[4:])
-        return (header,)
+        return (error, header)
 
     def on_fetch_history(self, data):
         error = unpack_error(data)
         # parse results
         rows = self.unpack_table("<32sIIQ32sII", data, 4)
-
-        # sum the row values
-        total = reduce(lambda a, b: a+to_btc(b[3]), rows, Decimal())
-
-        return (rows, total)
+        return (error, rows)
 
     def on_fetch_last_height(self, data):
         error, height = struct.unpack('<II', data)
-        return (height,)
+        return (error, height)
 
     def on_fetch_transaction(self, data):
-        return serialize.deser_tx(data)
+        error = unpack_error(data)
+        tx = serialize.deser_tx(data[4:])
+        return (error, tx)
+
+    def on_fetch_spend(self, data):
+        error = unpack_error(data)
+        spend = serialize.deser_output_point(data[4:])
+        return (error, spend)
         
     def on_subscribe(self, data):
         self.subscribed += 1

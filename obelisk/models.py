@@ -1,5 +1,6 @@
 import bitcoin
 import struct
+import serialize
 
 class BlockHeader:
 
@@ -29,6 +30,24 @@ class BlockHeader:
     def __repr__(self):
         return '<BlockHeader %s>' % (self.hash.encode("hex"),)
 
+class OutPoint(object):
+    def __init__(self):
+        self.hash = None
+        self.index = None
+
+    def is_null(self):
+        return (len(self.hash) == 0) and (self.index == 0xffffffff)
+
+    def __repr__(self):
+        return "Outpoint(hash=%s, index=%i)" % (self.hash.encode("hex"), self.index)
+
+    def serialize(self):
+        return serialize.ser_output_point(self)
+
+    @staticmethod
+    def deserialize(bytes):
+        return serialize.deser_output_point(bytes)
+
 class TxOut(object):
     def __init__(self):
         self.value = None
@@ -38,11 +57,11 @@ class TxOut(object):
         return "TxOut(value=%i.%08i script=%s)" % (self.value // 100000000, self.value % 100000000, self.script.encode("hex"))
 
     def serialize(self):
-        return ser_txout(self)
+        return serialize.ser_txout(self)
 
     @staticmethod
     def deserialize(bytes):
-        return deser_txout(bytes)
+        return serialize.deser_txout(bytes)
 
 
 class TxIn(object):
@@ -55,14 +74,14 @@ class TxIn(object):
         return self.sequence == 0xffffffff
 
     def __repr__(self):
-        return "TxIn(previous_output=%s script=%s sequence=%i)" % (repr(self.previous_output), self.script.encode("hex"))
+        return "TxIn(previous_output=%s script=%s sequence=%i)" % (repr(self.previous_output), self.script.encode("hex"), self.sequence)
 
     def serialize(self):
-        return ser_txin(self)
+        return serialize.ser_txin(self)
 
     @staticmethod
     def deserialize(bytes):
-        return deser_txin(bytes)
+        return serialize.deser_txin(bytes)
 
 class Transaction:
     def __init__(self):
@@ -83,9 +102,9 @@ class Transaction:
         return "Transaction(version=%i inputs=%s outputs=%s locktime=%i)" % (self.version, repr(self.inputs), repr(self.outputs), self.locktime)
 
     def serialize(self):
-        return ser_tx(self)
+        return serialize.ser_tx(self)
 
     @staticmethod
     def deserialize(bytes):
-        return deser_tx(bytes)
+        return serialize.deser_tx(bytes)
 
