@@ -16,10 +16,20 @@ def unpack_error(data):
     value = struct.unpack_from('<I', data, 0)[0]
     return error_code.error_code.name_from_id(value)
 
+def pack_block_index(index):
+    if type(index) == str:
+        assert len(index) == 32
+        return serialize.ser_hash(index)
+    elif type(index) == int:
+        return struct.pack('<I', index)
+    else:
+        raise ValueError("Unknown index type")
+
 class ObeliskOfLightClient(ClientBase):
     valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
         'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'update', 'renew']
+        'fetch_transaction_index', 'fetch_block_transaction_hashes',
+        'fetch_block_height', 'update', 'renew']
 
     subscribed = 0
     # Command implementations
@@ -43,12 +53,7 @@ class ObeliskOfLightClient(ClientBase):
         reactor.callLater(120, self.renew_address, address)
 
     def fetch_block_header(self, index, cb):
-        if type(index) == str:
-            data = index[::-1]
-        elif type(index) == int:
-            data = struct.pack('<I', index)
-        else:
-            raise ValueError("Unknown index type")
+        data = pack_block_index(index)
         self.send_command('blockchain.fetch_block_header', data, cb)
 
     def fetch_history(self, address, cb):
@@ -64,12 +69,25 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('blockchain.fetch_last_height', cb=cb)
 
     def fetch_transaction(self, tx_hash, cb):
-        data = tx_hash[::-1]
+        data = serialize.ser_hash(tx_hash)
         self.send_command('blockchain.fetch_transaction', data, cb)
 
     def fetch_spend(self, outpoint, cb):
         data = outpoint.serialize()
         self.send_command('blockchain.fetch_spend', data, cb)
+
+    def fetch_transaction_index(self, tx_hash, cb):
+        data = serialize.ser_hash(tx_hash)
+        self.send_command('blockchain.fetch_transaction_index', data, cb)
+
+    def fetch_block_transaction_hashes(self, index, cb):
+        data = pack_block_index(index)
+        self.send_command('blockchain.fetch_block_transaction_hashes',
+            data, cb)
+
+    def fetch_block_height(self, blk_hash, cb):
+        data = serialize.ser_hash(blk_hash)
+        self.send_command('blockchain.fetch_block_height', data, cb)
 
     # receive handlers
     def on_fetch_block_header(self, data):
@@ -85,7 +103,8 @@ class ObeliskOfLightClient(ClientBase):
         return (error, rows)
 
     def on_fetch_last_height(self, data):
-        error, height = struct.unpack('<II', data)
+        error = unpack_error(data)
+        height = struct.unpack('<I', data[4:])[0]
         return (error, height)
 
     def on_fetch_transaction(self, data):
@@ -97,6 +116,22 @@ class ObeliskOfLightClient(ClientBase):
         error = unpack_error(data)
         spend = serialize.deser_output_point(data[4:])
         return (error, spend)
+
+    def on_fetch_transaction_index(self, data):
+        error = unpack_error(data)
+        height, index = struct.unpack("<II", data[4:])
+        return (error, height, index)
+
+    def on_fetch_block_transaction_hashes(self, data):
+        error = unpack_error(data)
+        rows = self.unpack_table("32s", data, 4)
+        hashes = [row[0][::-1] for row in rows]
+        return (error, hashes)
+
+    def on_fetch_block_height(self, data):
+        error = unpack_error(data)
+        height = struct.unpack('<I', data[4:])[0]
+        return (error, height)
         
     def on_subscribe(self, data):
         self.subscribed += 1
