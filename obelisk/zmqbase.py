@@ -36,7 +36,7 @@ class ClientBase(object):
         res = None
         short_cmd = cmd.split('.')[-1]
         if short_cmd in self.valid_messages:
-            res = getattr(self, 'on_'+short_cmd)(data)
+            res = getattr(self, '_on_'+short_cmd)(data)
         else:
             print "Unknown Message", cmd
         if res:
