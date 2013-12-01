@@ -51,7 +51,7 @@ class OutPoint(object):
 class TxOut(object):
     def __init__(self):
         self.value = None
-        self.script = None
+        self.script = ""
 
     def __repr__(self):
         return "TxOut(value=%i.%08i script=%s)" % (self.value // 100000000, self.value % 100000000, self.script.encode("hex"))
@@ -67,7 +67,7 @@ class TxOut(object):
 class TxIn(object):
     def __init__(self):
         self.previous_output = OutPoint()
-        self.script = None
+        self.script = ""
         self.sequence = 0xffffffff
 
     def is_final(self):
