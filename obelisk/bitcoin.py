@@ -19,6 +19,7 @@
 
 import hashlib, base64, ecdsa, re
 from util import print_error
+import models
 
 def rev_hex(s):
     return s.decode('hex')[::-1].encode('hex')
@@ -977,4 +978,43 @@ class EllipticCurveKey:
     @property
     def public_key(self):
         return "\x04" + self._public_key.to_string()
+
+def output_script(address):
+    addrtype, hash_160 = bc_address_to_hash_160(address)
+    assert addrtype == 0
+    script = '\x76\xa9'                 # op_dup, op_hash_160
+    script += '\x14'                    # push 0x14 bytes
+    script += hash_160
+    script += '\x88\xac'                # op_equalverify, op_checksig
+    return script
+
+def input_script(signature, public_key):
+    script = op_push(len(signature)).decode("hex")
+    script += signature
+    script += op_push(len(public_key)).decode("hex")
+    script += public_key
+    return script
+
+def sign_transaction_input(tx, input_index, prevout_address, key):
+    sighash = generate_signature_hash(tx, input_index, prevout_address)
+    # Add sighash::all to end of signature.
+    signature = key.sign(sighash) + "\x01"
+    public_key = key.public_key
+    tx.inputs[input_index].script = input_script(signature, public_key)
+
+def copy_tx(tx):
+    # This is a hack.
+    raw_tx = tx.serialize()
+    return models.Transaction.deserialize(raw_tx)
+
+def generate_signature_hash(parent_tx, input_index, prevout_address):
+    script_code = output_script(prevout_address)
+    tx = copy_tx(parent_tx)
+    if input_index >= len(tx.inputs):
+        return None
+    for input in tx.inputs:
+        input.script = ""
+    tx.inputs[input_index].script = script_code
+    raw_tx = tx.serialize() + "\x01\x00\x00\x00"
+    return Hash(raw_tx)
 
