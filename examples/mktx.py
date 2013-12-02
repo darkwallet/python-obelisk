@@ -15,22 +15,14 @@ def main(argv):
             value = D(value)
             add_output(tx, address, value)
     prevout_address = "1JdbgyywETKEssy4jqFcKiZBmn7oxVKxcT"
-    script_code = output_script(prevout_address)
-    sighash = generate_signature_hash(tx, 0, script_code)
-    print sighash.encode("hex")
+    # initialize signing key
     key = obelisk.EllipticCurveKey()
     secret = "59cd7a1d11ef24a1687b7c20bdb9f3bb" \
              "1cb93908401c503f8d69521dbfcd1c6d".decode("hex")
     assert len(secret) == 32
     key.set_secret(secret)
-    # The public key and sighash are correct
-    signature = key.sign(sighash) + "\x01"
-    public_key = key.public_key
-    script = obelisk.op_push(len(signature)).decode("hex")
-    script += signature
-    script += obelisk.op_push(len(public_key)).decode("hex")
-    script += public_key
-    tx.inputs[0].script = script
+    # sign input 0
+    sign_transaction_input(tx, 0, prevout_address, key)
     print tx
     print tx.serialize().encode("hex")
 
@@ -55,6 +47,20 @@ def add_output(tx, address, value):
     output.script = output_script(address)
     tx.outputs.append(output)
 
+def input_script(signature, public_key):
+    script = obelisk.op_push(len(signature)).decode("hex")
+    script += signature
+    script += obelisk.op_push(len(public_key)).decode("hex")
+    script += public_key
+    return script
+
+def sign_transaction_input(tx, input_index, prevout_address, key):
+    sighash = generate_signature_hash(tx, input_index, prevout_address)
+    # Add sighash::all to end of signature.
+    signature = key.sign(sighash) + "\x01"
+    public_key = key.public_key
+    tx.inputs[input_index].script = input_script(signature, public_key)
+
 #------------------
 
 def copy_tx(tx):
@@ -62,7 +68,8 @@ def copy_tx(tx):
     raw_tx = tx.serialize()
     return obelisk.Transaction.deserialize(raw_tx)
 
-def generate_signature_hash(parent_tx, input_index, script_code):
+def generate_signature_hash(parent_tx, input_index, prevout_address):
+    script_code = output_script(prevout_address)
     tx = copy_tx(parent_tx)
     if input_index >= len(tx.inputs):
         return None
@@ -70,7 +77,6 @@ def generate_signature_hash(parent_tx, input_index, script_code):
         input.script = ""
     tx.inputs[input_index].script = script_code
     raw_tx = tx.serialize() + "\x01\x00\x00\x00"
-    print "encoded:", raw_tx.encode("hex")
     return obelisk.Hash(raw_tx)
 
 if __name__ == "__main__":
