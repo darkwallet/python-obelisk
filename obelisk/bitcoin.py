@@ -950,8 +950,8 @@ class HighDefWallet:
 class EllipticCurveKey:
 
     def __init__(self):
-        self.private_key = None
-        self.public_key = None
+        self._private_key = None
+        self._public_key = None
 
     def set_secret(self, secret):
         secret = int('0x' + secret.encode('hex'), 16)
@@ -961,16 +961,20 @@ class EllipticCurveKey:
         #pkey = obelisk.regenerate_key(sec)
 
         secexp = pkey.secret
-        self.private_key = ecdsa.SigningKey.from_secret_exponent(
+        self._private_key = ecdsa.SigningKey.from_secret_exponent(
             secexp, curve=SECP256k1)
-        self.public_key = self.private_key.get_verifying_key()
+        self._public_key = self._private_key.get_verifying_key()
 
     def sign(self, digest):
-        return self.private_key.sign_digest_deterministic(
+        return self._private_key.sign_digest_deterministic(
             digest, hashfunc=hashlib.sha256,
             sigencode=ecdsa.util.sigencode_der)
 
     def verify(self, digest, signature):
-        return self.public_key.verify_digest(
+        return self._public_key.verify_digest(
             signature, digest, sigdecode=ecdsa.util.sigdecode_der)
+
+    @property
+    def public_key(self):
+        return "\x04" + self._public_key.to_string()
 
