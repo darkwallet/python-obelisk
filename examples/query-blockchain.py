@@ -37,10 +37,9 @@ def bootstrap_address(hash):
     def print_history_address(ec, history):
         print_history(ec, history, hash)
 
-    addr = obelisk.to_hash160(hash)
-    #print len(addr)
-    c.fetch_history(addr, print_history_address)
-    c.subscribe_address(addr)
+    addr = obelisk.bitcoin.bc_address_to_hash_160(hash)
+    c.fetch_history(addr[1], print_history_address)
+    c.subscribe_address(addr[1])
 
 def dummy(*args):
     pass

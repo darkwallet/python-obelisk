@@ -6,8 +6,6 @@ from twisted.internet import reactor
 from zmqbase import to_btc, btc, age
 from zmqbase import ClientBase, checksum, MAX_UINT32
 
-from btclib import to_hash160, to_addr, BlockHeader
-
 import models
 import serialize
 import error_code
@@ -117,7 +115,7 @@ class ObeliskOfLightClient(ClientBase):
     def _on_fetch_block_header(self, data):
         error = unpack_error(data)
         assert len(data[4:]) == 80
-        header = BlockHeader.deserialize(data[4:])
+        header = models.BlockHeader.deserialize(data[4:])
         return (error, header)
 
     def _on_fetch_history(self, data):
