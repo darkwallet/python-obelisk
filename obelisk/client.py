@@ -6,6 +6,7 @@ from twisted.internet import reactor
 from zmqbase import to_btc, btc, age
 from zmqbase import ClientBase, checksum, MAX_UINT32
 
+import bitcoin
 import models
 import serialize
 import error_code
@@ -72,11 +73,11 @@ class ObeliskOfLightClient(ClientBase):
         Summing the list of values for unspent outpoints gives the balance
         for an address.
         """
-        address_version = 0
-        address_hash = to_hash160(address)[::-1]
+        address_version, address_hash = \
+            bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
         data = struct.pack('B', address_version)    # address version
-        data += address_hash                        # address
+        data += address_hash[::-1]                  # address
         data += struct.pack('<I', from_height)      # from_height
 
         # run command
