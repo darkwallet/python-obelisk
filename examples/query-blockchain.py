@@ -33,13 +33,12 @@ def print_history(ec, history, address):
         if s_index != MAX_UINT32:
             print "-", to_btc(value), age(height - s_height), 'confirms'
 
-def bootstrap_address(hash):
+def bootstrap_address(address):
     def print_history_address(ec, history):
-        print_history(ec, history, hash)
+        print_history(ec, history, address)
 
-    addr = obelisk.bitcoin.bc_address_to_hash_160(hash)
-    c.fetch_history(addr[1], print_history_address)
-    c.subscribe_address(addr[1])
+    c.fetch_history(address, print_history_address)
+    #c.subscribe_address(addr)
 
 def dummy(*args):
     pass

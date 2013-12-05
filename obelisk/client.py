@@ -55,7 +55,7 @@ class ObeliskOfLightClient(ClientBase):
         data = pack_block_index(index)
         self.send_command('blockchain.fetch_block_header', data, cb)
 
-    def fetch_history(self, address, cb):
+    def fetch_history(self, address, cb, from_height=0):
         """Fetches the output points, output values, corresponding input point
         spends and the block heights associated with a Bitcoin address.
         The returned history is a list of rows with the following fields:
@@ -72,10 +72,12 @@ class ObeliskOfLightClient(ClientBase):
         Summing the list of values for unspent outpoints gives the balance
         for an address.
         """
+        address_version = 0
+        address_hash = to_hash160(address)[::-1]
         # prepare parameters
-        data = struct.pack('B', 0)          # address version
-        data += address[::-1]               # address
-        data += struct.pack('<I', 0)        # from_height
+        data = struct.pack('B', address_version)    # address version
+        data += address_hash                        # address
+        data += struct.pack('<I', from_height)      # from_height
 
         # run command
         self.send_command('address.fetch_history', data, cb)
