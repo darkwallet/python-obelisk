@@ -25,10 +25,16 @@ def checksum(value):
 
 class ClientBase(object):
     valid_messages = []
-    def __init__(self, address):
+    def __init__(self, address, block_address=None, tx_address=None):
         self._messages = []
+        self._tx_messages = []
+        self._block_messages = []
         self.running = 1
         self._socket = self.setup(address)
+        if block_address:
+            self._socket_block = self.setup_block_sub(block_address, self.on_raw_block)
+        if tx_address:
+            self._socket_tx = self.setup_tx_sub(tx_address, self.on_raw_transaction)
         self._subscriptions = {}
 
     # Message arrived
@@ -41,6 +47,12 @@ class ClientBase(object):
             print "Unknown Message", cmd
         if res:
             self.trigger_callbacks(id, *res)
+
+    def on_raw_block(self, height, hash, header, tx_num, tx_hashes):
+        print "block", height, len(tx_hashes)
+
+    def on_raw_transaction(self, hash, transaction):
+        print "tx", hash.encode('hex')
 
     # Base Api
     def send_command(self, command, data='', cb=None):
@@ -80,9 +92,45 @@ class ClientBase(object):
             else:
                 print "bad checksum"
 
+    def block_received(self, frame, more):
+        self._block_messages.append(frame)
+        if not more:
+            nblocks = struct.unpack('Q', self._block_messages[3])[0]
+            if not len(self._block_messages) == 4+nblocks:
+                print "Sequence with wrong messages", len(self._block_messages), 4+nblocks
+                self._block_messages = []
+                return
+            height, hash, header, tx_num = self._block_messages[:4]
+            tx_hashes = self._block_messages[5:]
+            self._block_messages = []
+            height = struct.unpack('I', height)[0]
+            self._block_cb(height, hash, header, tx_num, tx_hashes)
+
+    def tx_received(self, frame, more):
+        self._tx_messages.append(frame)
+        if not more:
+            if not len(self._tx_messages) == 2:
+                print "Sequence with wrong messages", len(self._tx_messages)
+                self._tx_messages = []
+            hash, transaction = self._tx_messages
+            self._tx_messages = []
+            self._tx_cb(hash, transaction)
+
     def setup(self, address):
         s = ZmqSocket(self.frame_received)
         s.connect(address)
+        return s
+
+    def setup_block_sub(self, address, cb):
+        s = ZmqSocket(self.block_received, type='SUB')
+        s.connect(address)
+        self._block_cb = cb
+        return s
+
+    def setup_tx_sub(self, address, cb):
+        s = ZmqSocket(self.tx_received, type='SUB')
+        s.connect(address)
+        self._tx_cb = cb
         return s
 
     # Low level packing
