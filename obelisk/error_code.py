@@ -70,4 +70,5 @@ class error_code(object):
         for key, value in error_code.__dict__.iteritems():
             if value == id:
                 return key
+        return None
 

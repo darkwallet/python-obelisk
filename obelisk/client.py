@@ -6,6 +6,7 @@ from twisted.internet import reactor
 from zmqbase import to_btc, btc, age
 from zmqbase import ClientBase, checksum, MAX_UINT32
 
+import bitcoin
 import models
 import serialize
 import error_code
@@ -55,7 +56,7 @@ class ObeliskOfLightClient(ClientBase):
         data = pack_block_index(index)
         self.send_command('blockchain.fetch_block_header', data, cb)
 
-    def fetch_history(self, address, cb):
+    def fetch_history(self, address, cb, from_height=0):
         """Fetches the output points, output values, corresponding input point
         spends and the block heights associated with a Bitcoin address.
         The returned history is a list of rows with the following fields:
@@ -72,10 +73,12 @@ class ObeliskOfLightClient(ClientBase):
         Summing the list of values for unspent outpoints gives the balance
         for an address.
         """
+        address_version, address_hash = \
+            bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
-        data = struct.pack('B', 0)          # address version
-        data += address[::-1]               # address
-        data += struct.pack('<I', 0)        # from_height
+        data = struct.pack('B', address_version)    # address version
+        data += address_hash[::-1]                  # address
+        data += struct.pack('<I', from_height)      # from_height
 
         # run command
         self.send_command('address.fetch_history', data, cb)
