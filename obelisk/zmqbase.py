@@ -112,6 +112,7 @@ class ClientBase(object):
             if not len(self._tx_messages) == 2:
                 print "Sequence with wrong messages", len(self._tx_messages)
                 self._tx_messages = []
+                return
             hash, transaction = self._tx_messages
             self._tx_messages = []
             self._tx_cb(hash, transaction)
