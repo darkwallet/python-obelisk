@@ -34,7 +34,7 @@ class ClientBase(object):
         if block_address:
             self._socket_block = self.setup_block_sub(block_address, self.on_raw_block)
         if tx_address:
-            self._socket_tx = self.setup_tx_sub(tx_address, self.on_raw_transaction)
+            self._socket_tx = self.setup_transaction_sub(tx_address, self.on_raw_transaction)
         self._subscriptions = {}
 
     # Message arrived
@@ -106,7 +106,7 @@ class ClientBase(object):
             height = struct.unpack('I', height)[0]
             self._block_cb(height, hash, header, tx_num, tx_hashes)
 
-    def tx_received(self, frame, more):
+    def transaction_received(self, frame, more):
         self._tx_messages.append(frame)
         if not more:
             if not len(self._tx_messages) == 2:
@@ -127,8 +127,8 @@ class ClientBase(object):
         self._block_cb = cb
         return s
 
-    def setup_tx_sub(self, address, cb):
-        s = ZmqSocket(self.tx_received, type='SUB')
+    def setup_transaction_sub(self, address, cb):
+        s = ZmqSocket(self.transaction_received, type='SUB')
         s.connect(address)
         self._tx_cb = cb
         return s
