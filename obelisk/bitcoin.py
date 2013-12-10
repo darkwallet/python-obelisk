@@ -1003,8 +1003,8 @@ def input_script(signature, public_key):
     script += public_key
     return script
 
-def sign_transaction_input(tx, input_index, prevout_address, key):
-    sighash = generate_signature_hash(tx, input_index, prevout_address)
+def sign_transaction_input(tx, input_index, key):
+    sighash = generate_signature_hash(tx, input_index, key.address)
     # Add sighash::all to end of signature.
     signature = key.sign(sighash) + "\x01"
     public_key = key.public_key

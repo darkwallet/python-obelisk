@@ -22,7 +22,7 @@ def main(argv):
     assert len(secret) == 32
     key.set_secret(secret)
     # sign input 0
-    obelisk.sign_transaction_input(tx, 0, prevout_address, key)
+    obelisk.sign_transaction_input(tx, 0, key)
     print tx
     print tx.serialize().encode("hex")
 
