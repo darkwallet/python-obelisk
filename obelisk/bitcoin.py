@@ -977,7 +977,15 @@ class EllipticCurveKey:
 
     @property
     def public_key(self):
-        return "\x04" + self._public_key.to_string()
+        return GetPubKey(self._public_key.pubkey, True)
+
+    @property
+    def key_id(self):
+        return hash_160(self.public_key)
+
+    @property
+    def address(self):
+        return hash_160_to_bc_address(self.key_id)
 
 def output_script(address):
     addrtype, hash_160 = bc_address_to_hash_160(address)

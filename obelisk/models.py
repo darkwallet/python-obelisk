@@ -39,7 +39,7 @@ class OutPoint(object):
         return (len(self.hash) == 0) and (self.index == 0xffffffff)
 
     def __repr__(self):
-        return "Outpoint(hash=%s, index=%i)" % (self.hash.encode("hex"), self.index)
+        return "OutPoint(hash=%s, index=%i)" % (self.hash.encode("hex"), self.index)
 
     def serialize(self):
         return serialize.ser_output_point(self)
