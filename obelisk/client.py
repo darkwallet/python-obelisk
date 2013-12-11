@@ -3,8 +3,7 @@ from decimal import Decimal
 
 from twisted.internet import reactor
 
-from zmqbase import to_btc, btc, age
-from zmqbase import ClientBase, checksum, MAX_UINT32
+from zmqbase import ClientBase
 
 import bitcoin
 import models

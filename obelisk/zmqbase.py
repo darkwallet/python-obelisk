@@ -1,27 +1,15 @@
 import sys
 import random
-from hashlib import sha256
 import struct
-from twisted.internet import reactor
-from twisted.internet.threads import deferToThread
-from decimal import Decimal
-from threading import enumerate
 
 import zmqproto
 from zmqproto import ZmqSocket
+
+from obelisk.serialize import checksum
+
 SNDMORE = 1
 
-btc = Decimal('1'+'0'*8)
 MAX_UINT32 = 4294967295
-
-def to_btc(value):
-    return Decimal(value)/btc
-
-def age(blocks):
-    return blocks/(7*24)
-
-def checksum(value):
-    return sha256(sha256(value).digest()).digest()[0:4]
 
 class ClientBase(object):
     valid_messages = []

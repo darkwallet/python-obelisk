@@ -3,9 +3,14 @@ import os, sys
 
 from twisted.internet import reactor
 
+from obelisk.util import to_btc
+
 ####################################################
 # Testing Code
 height = 0
+
+def age(blocks):
+    return blocks/(7*24)
 
 def print_height(ec, data):
     global height

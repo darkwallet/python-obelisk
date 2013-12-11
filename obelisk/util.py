@@ -2,9 +2,15 @@ import os, sys, re
 import platform
 import shutil
 from datetime import datetime
+from decimal import Decimal
+
 is_verbose = True
 
+btc = Decimal('1'+'0'*8)
 
+
+def to_btc(value):
+    return Decimal(value)/btc
 
 def set_verbosity(b):
     global is_verbose
