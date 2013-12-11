@@ -19,6 +19,7 @@
 
 import hashlib, base64, ecdsa, re
 from util import print_error
+from config import chain
 import models
 
 def rev_hex(s):
@@ -122,7 +123,7 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
-def hash_160_to_bc_address(h160, addrtype = 0):
+def hash_160_to_bc_address(h160, addrtype=chain.pubkey_version):
     vh160 = chr(addrtype) + h160
     h = Hash(vh160)
     addr = vh160 + h[0:4]
@@ -211,12 +212,12 @@ def DecodeBase58Check(psz):
 def PrivKeyToSecret(privkey):
     return privkey[9:9+32]
 
-def SecretToASecret(secret, compressed=False, addrtype=0):
+def SecretToASecret(secret, compressed=False, addrtype=chain.pubkey_version):
     vchIn = chr((addrtype+128)&255) + secret
     if compressed: vchIn += '\01'
     return EncodeBase58Check(vchIn)
 
-def ASecretToSecret(key, addrtype=0):
+def ASecretToSecret(key, addrtype=chain.pubkey_version):
     vch = DecodeBase58Check(key)
     if vch and vch[0] == chr((addrtype+128)&255):
         return vch[1:]
@@ -701,12 +702,12 @@ class Transaction:
             addr, amount = output
             s += int_to_hex( amount, 8)                              # amount
             addrtype, hash_160 = bc_address_to_hash_160(addr)
-            if addrtype == 0:
+            if addrtype == chain.pubkey_version:
                 script = '76a9'                                      # op_dup, op_hash_160
                 script += '14'                                       # push 0x14 bytes
                 script += hash_160.encode('hex')
                 script += '88ac'                                     # op_equalverify, op_checksig
-            elif addrtype == 5:
+            elif addrtype == chain.script_version:
                 script = 'a9'                                        # op_hash_160
                 script += '14'                                       # push 0x14 bytes
                 script += hash_160.encode('hex')
@@ -989,7 +990,7 @@ class EllipticCurveKey:
 
 def output_script(address):
     addrtype, hash_160 = bc_address_to_hash_160(address)
-    assert addrtype == 0
+    assert addrtype == chain.pubkey_version
     script = '\x76\xa9'                 # op_dup, op_hash_160
     script += '\x14'                    # push 0x14 bytes
     script += hash_160
