@@ -24,6 +24,7 @@ class ClientBase(object):
         if tx_address:
             self._socket_tx = self.setup_transaction_sub(tx_address, self.on_raw_transaction)
         self._subscriptions = {}
+        self._subscriptions = {'address': {}}
 
     # Message arrived
     def on_raw_message(self, id, cmd, data):

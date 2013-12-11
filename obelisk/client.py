@@ -41,13 +41,15 @@ class ObeliskOfLightClient(ClientBase):
         # renew triggered again on response
         reactor.callLater(120, self.renew_address, address)
 
-    def subscribe_address(self, address):
+    def subscribe_address(self, address, cb=None):
         # prepare parameters
         data = struct.pack('B', 0)          # address version
         data += address[::-1]               # address
 
         # run command
         self.send_command('address.subscribe', data)
+        if cb:
+            self._subscriptions['address'][address] = cb
         reactor.callLater(120, self.renew_address, address)
 
     def fetch_block_header(self, index, cb):
@@ -167,6 +169,8 @@ class ObeliskOfLightClient(ClientBase):
 
     def _on_update(self, data):
         print "Update for address"
+        if address in self._subscriptions['address']:
+            self._subscriptions['address'][address](data)
 
     def _on_renew(self, data):
         self.subscribed += 1
