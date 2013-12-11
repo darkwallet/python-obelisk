@@ -172,10 +172,16 @@ class ObeliskOfLightClient(ClientBase):
             print "Subscribed ok", self.subscribed
 
     def _on_update(self, data):
-        print "Update for address", data
-        return
-        if address in self._subscriptions['address']:
-            self._subscriptions['address'][address](data)
+        address_version = struct.unpack_from('B', data, 0)[0]
+        address_hash = data[1:21][::-1]
+        address = bitcoin.hash_160_to_bc_address(address_hash, address_version)
+
+        height = struct.unpack_from('I', data, 21)[0]
+        block_hash = data[25:57]
+        tx = data[57:]
+
+        if address_hash in self._subscriptions['address']:
+            self._subscriptions['address'][address_hash](address_version, address_hash, height, block_hash, tx)
 
     def _on_renew(self, data):
         self.subscribed += 1
