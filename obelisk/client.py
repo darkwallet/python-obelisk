@@ -43,7 +43,7 @@ class ObeliskOfLightClient(ClientBase):
         # renew triggered again on response
         reactor.callLater(120, self.renew_address, address)
 
-    def subscribe_address(self, address, cb=None):
+    def subscribe_address(self, address, notification_cb=None, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
@@ -51,9 +51,9 @@ class ObeliskOfLightClient(ClientBase):
         data += address_hash[::-1]               # address
 
         # run command
-        self.send_command('address.subscribe', data)
+        self.send_command('address.subscribe', data, cb)
         if cb:
-            self._subscriptions['address'][address_hash] = cb
+            self._subscriptions['address'][address_hash] = notification_cb
         reactor.callLater(120, self.renew_address, address)
 
     def fetch_block_header(self, index, cb):
@@ -170,6 +170,7 @@ class ObeliskOfLightClient(ClientBase):
             print "Error subscribing"
         if not self.subscribed%1000:
             print "Subscribed ok", self.subscribed
+        return (error, True)
 
     def _on_update(self, data):
         address_version = struct.unpack_from('B', data, 0)[0]

@@ -91,6 +91,7 @@ class ClientBase(object):
                 return
             height, hash, header, tx_num = self._block_messages[:4]
             tx_hashes = self._block_messages[5:]
+            tx_num = struct.unpack('I', tx_num)[0]
             self._block_messages = []
             height = struct.unpack('I', height)[0]
             self._block_cb(height, hash, header, tx_num, tx_hashes)
