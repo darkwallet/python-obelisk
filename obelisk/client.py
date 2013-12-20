@@ -52,7 +52,7 @@ class ObeliskOfLightClient(ClientBase):
 
         # run command
         self.send_command('address.subscribe', data, cb)
-        if cb:
+        if notification_cb:
             self._subscriptions['address'][address_hash] = notification_cb
         reactor.callLater(120, self.renew_address, address)
 
