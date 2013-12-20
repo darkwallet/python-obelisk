@@ -49,10 +49,10 @@ def ser_string(s):
     return bchr(255) + struct.pack(b"<Q", len(s)) + s
 
 def deser_hash(f):
-    return f.read(32)[::-1]
+    return f.read(32)
 
 def ser_hash(h):
-    return h[::-1]
+    return h
 
 def deser_uint256(f):
     r = 0
