@@ -199,6 +199,7 @@ def parse_TxIn(vds):
     
     d['address'] = address
     d['signatures'] = signatures
+    d['pubkeys'] = pubkeys
 
     return d
 
@@ -335,7 +336,7 @@ def get_address_from_input_script(bytes):
     # (65 bytes) onto the stack:
     match = [ opcodes.OP_PUSHDATA4, opcodes.OP_PUSHDATA4 ]
     if match_decoded(decoded, match):
-        return None, None, public_key_to_bc_address(decoded[1][1])
+        return [decoded[1][1].encode('hex')], [decoded[0][1].encode('hex')], public_key_to_bc_address(decoded[1][1])
 
     # p2sh transaction, 2 of n
     match = [ opcodes.OP_0 ]
