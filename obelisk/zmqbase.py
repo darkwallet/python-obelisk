@@ -13,10 +13,11 @@ MAX_UINT32 = 4294967295
 
 class ClientBase(object):
     valid_messages = []
-    def __init__(self, address, block_address=None, tx_address=None):
+    def __init__(self, address, block_address=None, tx_address=None, version=1):
         self._messages = []
         self._tx_messages = []
         self._block_messages = []
+        self.zmq_version = version
         self.running = 1
         self._socket = self.setup(address)
         if block_address:
@@ -63,8 +64,8 @@ class ClientBase(object):
             del self._subscriptions[tx_id]
 
     # Low level zmq abstraction into obelisk frames
-    def send(self, *args):
-        self._socket.send(*args)
+    def send(self, *args, **kwargs):
+        self._socket.send(*args, **kwargs)
 
     def frame_received(self, frame, more):
         self._messages.append(frame)
@@ -112,18 +113,18 @@ class ClientBase(object):
             self._tx_cb(hash, transaction)
 
     def setup(self, address):
-        s = ZmqSocket(self.frame_received)
+        s = ZmqSocket(self.frame_received, self.zmq_version)
         s.connect(address)
         return s
 
     def setup_block_sub(self, address, cb):
-        s = ZmqSocket(self.block_received, type='SUB')
+        s = ZmqSocket(self.block_received, self.zmq_version, type='SUB')
         s.connect(address)
         self._block_cb = cb
         return s
 
     def setup_transaction_sub(self, address, cb):
-        s = ZmqSocket(self.transaction_received, type='SUB')
+        s = ZmqSocket(self.transaction_received, self.zmq_version, type='SUB')
         s.connect(address)
         self._tx_cb = cb
         return s
