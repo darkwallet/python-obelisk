@@ -52,7 +52,7 @@ def deser_hash(f):
     return f.read(32)
 
 def ser_hash(h):
-    return h
+    return h[::-1]
 
 def deser_uint256(f):
     r = 0

@@ -20,7 +20,7 @@ def height_fetched(ec, height):
     print height
 
 if __name__ == '__main__':
-    client = obelisk.ObeliskOfLightClient('tcp://37.139.11.99:9091')
+    client = obelisk.ObeliskOfLightClient("tcp://85.25.198.97:9091")
     tx_hash = "e9a66845e05d5abc0ad04ec80f774a7e" \
               "585c6e8db975962d069a522137b80c1d".decode("hex")
     client.fetch_transaction(tx_hash, tx_fetched)

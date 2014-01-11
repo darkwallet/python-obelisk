@@ -58,7 +58,7 @@ def poll_latest(client):
     reactor.callLater(20, poll_latest, client)
 
 if __name__ == '__main__':
-    c = obelisk.ObeliskOfLightClient('tcp://37.139.11.99:9091')
+    c = obelisk.ObeliskOfLightClient('tcp://85.25.198.97:8081')
     #c.fetch_last_height(print_height)
     #blk_hash = "000000000000000471988cc24941335b" \
     #           "91d35d646971b7de682b4236dc691919".decode("hex")
@@ -78,5 +78,4 @@ if __name__ == '__main__':
         bootstrap_address(hash)
     reactor.callLater(0, poll_latest, c)
     reactor.run()
-
 
