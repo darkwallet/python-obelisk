@@ -2,8 +2,12 @@ import sys
 import random
 import struct
 
-import zmqproto
-from zmqproto import ZmqSocket
+# Broken for ZMQ 4
+#try:
+#    from zmqproto import ZmqSocket
+#except ImportError:
+#    from zmq_fallback import ZmqSocket
+from zmq_fallback import ZmqSocket
 
 from obelisk.serialize import checksum
 
@@ -12,8 +16,10 @@ SNDMORE = 1
 MAX_UINT32 = 4294967295
 
 class ClientBase(object):
+
     valid_messages = []
-    def __init__(self, address, block_address=None, tx_address=None, version=1):
+
+    def __init__(self, address, block_address=None, tx_address=None, version=3):
         self._messages = []
         self._tx_messages = []
         self._block_messages = []
@@ -21,10 +27,11 @@ class ClientBase(object):
         self.running = 1
         self._socket = self.setup(address)
         if block_address:
-            self._socket_block = self.setup_block_sub(block_address, self.on_raw_block)
+            self._socket_block = self.setup_block_sub(
+                block_address, self.on_raw_block)
         if tx_address:
-            self._socket_tx = self.setup_transaction_sub(tx_address, self.on_raw_transaction)
-        self._subscriptions = {}
+            self._socket_tx = self.setup_transaction_sub(
+                tx_address, self.on_raw_transaction)
         self._subscriptions = {'address': {}}
 
     # Message arrived
@@ -72,6 +79,7 @@ class ClientBase(object):
         if not more:
             if not len(self._messages) == 5:
                 print "Sequence with wrong messages", len(self._messages)
+                print [m.encode("hex") for m in self._messages]
                 self._messages = []
                 return
             uuid, command, id, data, chksum = self._messages
@@ -145,5 +153,4 @@ class ClientBase(object):
             row = struct.unpack_from(row_fmt, data, offset)
             rows.append(row)
         return rows
-
 

@@ -21,6 +21,8 @@ import hashlib, base64, ecdsa, re
 from util import print_error
 from config import chain
 import models
+import numbertheory
+import os
 
 def rev_hex(s):
     return s.decode('hex')[::-1].encode('hex')
@@ -284,6 +286,7 @@ curve_secp256k1 = ecdsa.ellipticcurve.CurveFp( _p, _a, _b )
 generator_secp256k1 = ecdsa.ellipticcurve.Point( curve_secp256k1, _Gx, _Gy, _r )
 oid_secp256k1 = (1,3,132,0,10)
 SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1 ) 
+ec_order = _r
 
 from ecdsa.util import string_to_number, number_to_string
 
@@ -952,11 +955,17 @@ class HighDefWallet:
 class EllipticCurveKey:
 
     def __init__(self):
+        self._secret = None
         self._private_key = None
         self._public_key = None
 
+    def new_key_pair(self):
+        secret = os.urandom(32)
+        self.set_secret(secret)
+
     def set_secret(self, secret):
-        secret = int('0x' + secret.encode('hex'), 16)
+        self._secret = secret
+        secret = string_to_number(secret)
         pkey = EC_KEY(secret)
 
         #sec = "L5KhaMvPYRW1ZoFmRjUtxxPypQ94m6BcDrPhqArhggdaTbbAFJEF"
@@ -975,6 +984,10 @@ class EllipticCurveKey:
     def verify(self, digest, signature):
         return self._public_key.verify_digest(
             signature, digest, sigdecode=ecdsa.util.sigdecode_der)
+
+    @property
+    def secret(self):
+        return self._secret
 
     @property
     def public_key(self):
@@ -1026,4 +1039,73 @@ def generate_signature_hash(parent_tx, input_index, prevout_address):
     tx.inputs[input_index].script = script_code
     raw_tx = tx.serialize() + "\x01\x00\x00\x00"
     return Hash(raw_tx)
+
+def _derive_y_from_x(x, is_even):
+    alpha = (pow(x, 3, _p)  + _a * x + _b) % _p
+    beta = numbertheory.modular_sqrt(alpha, _p)
+    if is_even == bool(beta & 1):
+        return _p - beta
+    return beta
+
+def decompress_public_key(public_key):
+    prefix = public_key[0]
+    if prefix == "\x04":
+        return public_key
+    assert prefix == "\x02" or prefix == "\x03"
+    x = int("0x" + public_key[1:].encode("hex"), 16)
+    y = _derive_y_from_x(x, prefix == "\x02")
+    key = '04' + \
+          '%064x' % x + \
+          '%064x' % y
+    return key.decode("hex")
+
+def diffie_hellman(e, Q):
+    Q = decompress_public_key(Q)
+    curve = SECP256k1
+    public_key = ecdsa.VerifyingKey.from_string(Q[1:], curve=curve)
+    point = public_key.pubkey.point
+    #e_int = int("0x" + e.encode("hex"), 16)
+    e_int = string_to_number(e)
+    point = e_int * point
+    # convert x point to bytes
+    result = "\x03" + ("%x" % point.x()).decode("hex")
+    assert len(result) == 33
+    return result
+
+def convert_point(Q):
+    Q = decompress_public_key(Q)[1:]
+    assert len(Q) == 64
+    Q_x = Q[:32]
+    Q_y = Q[32:]
+    assert len(Q_x) == 32
+    assert len(Q_y) == 32
+    Q_x = string_to_number(Q_x)
+    Q_y = string_to_number(Q_y)
+    curve = curve_secp256k1
+    return ecdsa.ellipticcurve.Point(curve, Q_x, Q_y, ec_order)
+
+def point_add(Q, c):
+    Q = convert_point(Q)
+    c = string_to_number(c)
+    return Q + c * generator_secp256k1
+
+def get_point_pubkey(point, compressed=False):
+    if compressed:
+        if point.y() & 1:
+            key = '03' + '%064x' % point.x()
+        else:
+            key = '02' + '%064x' % point.x()
+    else:
+        key = '04' + \
+              '%064x' % point.x() + \
+              '%064x' % point.y()
+    return key.decode('hex')
+
+def add_mod_n(d, c):
+    assert len(d) == 32
+    # Truncate prefix byte
+    order = generator_secp256k1.order()
+    d = string_to_number(d)
+    c = string_to_number(c)
+    return number_to_string((d + c) % order, order)
 
