@@ -24,7 +24,7 @@ class ZmqSocket:
     def poll(self):
         try:
             data = self._socket.recv(flags=zmq.NOBLOCK)
-        except zmq.core.error.ZMQError:
+        except zmq.error.ZMQError:
             return
         more = self._socket.getsockopt(zmq.RCVMORE)
         self._cb(data, more)
