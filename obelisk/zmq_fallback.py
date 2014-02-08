@@ -2,6 +2,12 @@ import zmq
 from twisted.internet import task
 from twisted.internet import reactor
 
+# Some versions of ZMQ have the error in a different module.
+try:
+    zmq.error
+except AttributeError:
+    zmq.error = zmq.core.error
+
 class ZmqSocket:
 
     context = zmq.Context(1)
