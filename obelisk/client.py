@@ -123,7 +123,7 @@ class ObeliskOfLightClient(ClientBase):
     def _on_fetch_block_header(self, data):
         error = unpack_error(data)
         assert len(data[4:]) == 80
-        header = models.BlockHeader.deserialize(data[4:])
+        header = data[4:]
         return (error, header)
 
     def _on_fetch_history(self, data):
