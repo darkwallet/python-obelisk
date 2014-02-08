@@ -139,7 +139,7 @@ class ObeliskOfLightClient(ClientBase):
 
     def _on_fetch_transaction(self, data):
         error = unpack_error(data)
-        tx = serialize.deser_tx(data[4:])
+        tx = data[4:]
         return (error, tx)
 
     def _on_fetch_spend(self, data):
