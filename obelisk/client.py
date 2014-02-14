@@ -146,7 +146,18 @@ class ObeliskOfLightClient(ClientBase):
         error = unpack_error(data)
         # parse results
         rows = self.unpack_table("<32sIIQ32sII", data, 4)
-        return (error, rows)
+        history = []
+        for row in rows:
+            o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
+            o_hash = o_hash[::-1]
+            s_hash = s_hash[::-1]
+            if s_index == 4294967295:
+                s_hash = None
+                s_index = None
+                s_height = None
+            history.append(
+                (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
+        return (error, history)
 
     def _on_fetch_last_height(self, data):
         error = unpack_error(data)
