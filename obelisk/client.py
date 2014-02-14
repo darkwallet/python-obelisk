@@ -27,7 +27,7 @@ class ObeliskOfLightClient(ClientBase):
     valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
         'fetch_last_height', 'fetch_transaction', 'fetch_spend',
         'fetch_transaction_index', 'fetch_block_transaction_hashes',
-        'fetch_block_height', 'update', 'renew']
+        'fetch_block_height', 'fetch_stealth', 'update', 'renew']
 
     subscribed = 0
     # Command implementations
@@ -76,8 +76,7 @@ class ObeliskOfLightClient(ClientBase):
         to null_hash.
 
         Summing the list of values for unspent outpoints gives the balance
-        for an address.
-        """
+        for an address."""
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
@@ -118,6 +117,23 @@ class ObeliskOfLightClient(ClientBase):
         """Fetches the height of a block given its hash."""
         data = serialize.ser_hash(blk_hash)
         self.send_command('blockchain.fetch_block_height', data, cb)
+
+    def fetch_stealth(self, prefix, cb, from_height=0):
+        """Fetch possible stealth results. These results can then be iterated
+        to discover new payments belonging to a particular stealth address.
+        This is for recipient privacy.
+        
+        The prefix is a special value that can be adjusted to provide
+        greater precision at the expense of deniability.
+        
+        from_height is not guaranteed to only return results from that
+        height, and may also include results from earlier blocks.
+        It is provided as an optimisation. All results at and after
+        from_height are guaranteed to be returned however."""
+        number_bits, bitfield = prefix
+        data = struct.pack('<BII', number_bits, bitfield, from_height)
+        assert len(data) == 9
+        self.send_command('blockchain.fetch_stealth', data, cb)
 
     # receive handlers
     def _on_fetch_block_header(self, data):
@@ -162,6 +178,17 @@ class ObeliskOfLightClient(ClientBase):
         error = unpack_error(data)
         height = struct.unpack('<I', data[4:])[0]
         return (error, height)
+
+    def _on_fetch_stealth(self, data):
+        error = unpack_error(data)
+        raw_rows = self.unpack_table("<33sB20s32s", data, 4)
+        rows = []
+        for ephemkey, address_version, address_hash, tx_hash in raw_rows:
+            address = bitcoin.hash_160_to_bc_address(
+                address_hash[::-1], address_version)
+            tx_hash = tx_hash[::-1]
+            rows.append((ephemkey, address, tx_hash))
+        return (error, rows)
         
     def _on_subscribe(self, data):
         self.subscribed += 1
