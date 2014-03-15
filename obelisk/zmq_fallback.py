@@ -12,12 +12,11 @@ class ZmqSocket:
 
     context = zmq.Context(1)
 
-    def __init__(self, cb, version, type = zmq.DEALER):
+    def __init__(self, cb, version, type=zmq.DEALER):
         self._cb = cb
         self._type = type
         if self._type=='SUB':
             self._type = zmq.SUB
-            
 
     def connect(self, address):
         self._socket = ZmqSocket.context.socket(self._type)

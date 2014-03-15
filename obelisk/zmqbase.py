@@ -55,12 +55,10 @@ class ClientBase(object):
     def send_command(self, command, data='', cb=None):
         tx_id = random.randint(0, MAX_UINT32)
 
-        self.send('', SNDMORE)      # destination
         self.send(command, SNDMORE) # command
         self.send(struct.pack('I', tx_id), SNDMORE) # id (random)
-        self.send(data, SNDMORE)    # data
+        self.send(data, 0)    # data
 
-        self.send(checksum(data), 0)    # checksum
         if cb:
             self._subscriptions[tx_id] = cb
         return tx_id
@@ -77,18 +75,15 @@ class ClientBase(object):
     def frame_received(self, frame, more):
         self._messages.append(frame)
         if not more:
-            if not len(self._messages) == 5:
+            if not len(self._messages) == 3:
                 print "Sequence with wrong messages", len(self._messages)
                 print [m.encode("hex") for m in self._messages]
                 self._messages = []
                 return
-            uuid, command, id, data, chksum = self._messages
+            command, id, data = self._messages
             self._messages = []
-            if checksum(data) == chksum:
-                id = struct.unpack('I', id)[0]
-                self.on_raw_message(id, command, data)
-            else:
-                print "bad checksum"
+            id = struct.unpack('I', id)[0]
+            self.on_raw_message(id, command, data)
 
     def block_received(self, frame, more):
         self._block_messages.append(frame)
