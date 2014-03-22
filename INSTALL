@@ -1,0 +1,10 @@
+
+  # apt-get install python-pip python-twisted
+  # pip install ecdsa
+
+  # apt-get install cython
+  $ git clone https://github.com/zeromq/pyzmq
+  $ cd pyzmq
+  $ python setup.py configure --zmq=/usr/local/
+  $ python setup.py install
+
