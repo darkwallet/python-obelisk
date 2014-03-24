@@ -220,7 +220,8 @@ class ObeliskOfLightClient(ClientBase):
         tx = data[57:]
 
         if address_hash in self._subscriptions['address']:
-            self._subscriptions['address'][address_hash](address_version, address_hash, height, block_hash, tx)
+            update_cb = self._subscriptions['address'][address_hash]
+            update_cb(address_version, address_hash, height, block_hash, tx)
 
     def _on_renew(self, data):
         self.subscribed += 1
