@@ -40,8 +40,6 @@ class ObeliskOfLightClient(ClientBase):
 
         # run command
         self.send_command('address.renew', data)
-        # renew triggered again on response
-        reactor.callLater(120, self.renew_address, address)
 
     def subscribe_address(self, address, notification_cb=None, cb=None):
         address_version, address_hash = \
@@ -54,7 +52,6 @@ class ObeliskOfLightClient(ClientBase):
         self.send_command('address.subscribe', data, cb)
         if notification_cb:
             self._subscriptions['address'][address_hash] = notification_cb
-        reactor.callLater(120, self.renew_address, address)
 
     def fetch_block_header(self, index, cb):
         """Fetches the block header by height."""
