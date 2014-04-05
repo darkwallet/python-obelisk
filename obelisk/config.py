@@ -11,7 +11,7 @@ class ChainParameters(object):
 testnet_chain = ChainParameters(0x0709110b, 0x6F, 0xC4, 0xEF, 18333)
 mainnet_chain = ChainParameters(0xd9b4bef9, 0x00, 0x05, 0x80, 8333)
 
-ENABLE_TESTNET = False if not os.environ.get("ENABLE_TESTNET") else True
+ENABLE_TESTNET = os.environ.get("ENABLE_TESTNET", False)
 
 if ENABLE_TESTNET:
     chain = testnet_chain
