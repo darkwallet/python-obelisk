@@ -31,7 +31,7 @@ class ObeliskOfLightClient(ClientBase):
 
     subscribed = 0
     # Command implementations
-    def renew_address(self, address):
+    def renew_address(self, address, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
@@ -39,7 +39,7 @@ class ObeliskOfLightClient(ClientBase):
         data += address_hash[::-1]               # address
 
         # run command
-        self.send_command('address.renew', data)
+        self.send_command('address.renew', data, cb)
 
     def subscribe_address(self, address, notification_cb=None, cb=None):
         address_version, address_hash = \
@@ -51,7 +51,22 @@ class ObeliskOfLightClient(ClientBase):
         # run command
         self.send_command('address.subscribe', data, cb)
         if notification_cb:
-            self._subscriptions['address'][address_hash] = notification_cb
+            if not address_hash in self._subscriptions['address']:
+                self._subscriptions['address'][address_hash] = []
+                if not notification_cb in self._subscriptions['address'][address_hash]:
+                    self._subscriptions['address'][address_hash].append(notification_cb)
+
+    def unsubscribe_address(self, address, subscribed_cb, cb=None):
+        address_version, address_hash = \
+            bitcoin.bc_address_to_hash_160(address)
+
+        if address_hash in self._subscriptions['address']:
+            if subscribed_cb in self._subscriptions['address'][address_hash]:
+               self._subscriptions['address'][address_hash].remove(subscribed_cb)
+               if len(self._subscriptions['address'][address_hash]) == 0:
+                   self._subscriptions['address'].pop(address_hash)
+        if cb:
+            cb(None, address)
 
     def fetch_block_header(self, index, cb):
         """Fetches the block header by height."""
@@ -217,8 +232,8 @@ class ObeliskOfLightClient(ClientBase):
         tx = data[57:]
 
         if address_hash in self._subscriptions['address']:
-            update_cb = self._subscriptions['address'][address_hash]
-            update_cb(address_version, address_hash, height, block_hash, tx)
+            for update_cb in self._subscriptions['address'][address_hash]:
+                update_cb(address_version, address_hash, height, block_hash, tx)
 
     def _on_renew(self, data):
         self.subscribed += 1
@@ -227,4 +242,5 @@ class ObeliskOfLightClient(ClientBase):
             print "Error subscribing"
         if not self.subscribed%1000:
             print "Renew ok", self.subscribed
+        return (error, True)
 

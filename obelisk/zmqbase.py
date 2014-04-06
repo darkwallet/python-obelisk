@@ -1,6 +1,7 @@
 import sys
 import random
 import struct
+import logging
 
 # Broken for ZMQ 4
 #try:
@@ -41,7 +42,7 @@ class ClientBase(object):
         if short_cmd in self.valid_messages:
             res = getattr(self, '_on_'+short_cmd)(data)
         else:
-            print "Unknown Message", cmd
+            logging.warning("Unknown Message " + cmd)
         if res:
             self.trigger_callbacks(id, *res)
 
@@ -62,6 +63,11 @@ class ClientBase(object):
         if cb:
             self._subscriptions[tx_id] = cb
         return tx_id
+
+    def unsubscribe(self, cb):
+        for sub_id in self._subscriptions.keys():
+            if self._subscriptions[sub_id] == cb:
+                self._subscriptions.pop(sub_id)
 
     def trigger_callbacks(self, tx_id, *args):
         if tx_id in self._subscriptions:
