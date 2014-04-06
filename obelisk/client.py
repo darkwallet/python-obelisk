@@ -53,8 +53,8 @@ class ObeliskOfLightClient(ClientBase):
         if notification_cb:
             if not address_hash in self._subscriptions['address']:
                 self._subscriptions['address'][address_hash] = []
-                if not notification_cb in self._subscriptions['address'][address_hash]:
-                    self._subscriptions['address'][address_hash].append(notification_cb)
+            if not notification_cb in self._subscriptions['address'][address_hash]:
+                self._subscriptions['address'][address_hash].append(notification_cb)
 
     def unsubscribe_address(self, address, subscribed_cb, cb=None):
         address_version, address_hash = \
