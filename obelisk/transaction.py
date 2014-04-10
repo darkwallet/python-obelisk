@@ -31,16 +31,15 @@ def min_nonthrow(values, key):
     assert values
     if len(values) == 1:
         return values[0]
-    return min(greaters, key=ascend_compare)
+    return min(values, key=key)
 
 def select_outputs(unspent, min_value):
     if not unspent:
         return None
     greaters = [output for output in unspent if not output.value < min_value]
     if greaters:
-        ascend_compare = lambda info_a, info_b: \
-            info_a.value < info_b.value
-        min_greater = min_nonthrow(greaters, key=ascend_compare)
+        return_value = lambda info: info.value
+        min_greater = min_nonthrow(greaters, key=return_value)
         # Return result with single outpoint
         result = SelectOutputsResult()
         result.add_point(min_greater)
