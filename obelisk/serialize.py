@@ -274,7 +274,7 @@ def deser_output_point(f):
         f = io.BytesIO(f)
 
     outpoint = models.OutPoint()
-    outpoint.hash = deser_hash(f)
+    outpoint.hash = deser_hash(f)[::-1]
     outpoint.index = deser_uint32(f.read(4))
     return outpoint
 
