@@ -91,8 +91,10 @@ class ObeliskOfLightClient(ClientBase):
         for an address."""
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
+
         # prepare parameters
         data = struct.pack('B', address_version)    # address version
+        print "history for", address, address_version, from_height
         data += address_hash[::-1]                  # address
         data += struct.pack('<I', from_height)      # from_height
 
@@ -169,6 +171,7 @@ class ObeliskOfLightClient(ClientBase):
                 s_height = None
             history.append(
                 (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
+        print "history", history, data, "xx", error
         return (error, history)
 
     def _on_fetch_last_height(self, data):

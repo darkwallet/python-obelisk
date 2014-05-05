@@ -17,12 +17,12 @@ class ObeliskPubSubClient(obelisk.ObeliskOfLightClient):
     def on_raw_block(self, height, hash, header, tx_num, tx_hashes):
         print "* block", height, len(tx_hashes)
 
-    def on_raw_transaction(self, hash, transaction):
-        tx = obelisk.serialize.deser_tx(transaction)
+    def on_raw_transaction(self, tx_data):
+        tx = obelisk.serialize.deser_tx(tx_data)
         outputs = []
         for output in tx.outputs:
             outputs.append(obelisk.util.format_satoshis(output.value))
-        print "* tx", hash.encode('hex'), ", ".join(outputs)
+        print "* tx", ", ".join(outputs)
         
 
 

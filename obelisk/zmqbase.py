@@ -49,8 +49,8 @@ class ClientBase(object):
     def on_raw_block(self, height, hash, header, tx_num, tx_hashes):
         print "block", height, len(tx_hashes)
 
-    def on_raw_transaction(self, hash, transaction):
-        print "tx", hash.encode('hex')
+    def on_raw_transaction(self, tx_data):
+        print "tx", tx_data.encode('hex')
 
     # Base Api
     def send_command(self, command, data='', cb=None):
@@ -113,13 +113,13 @@ class ClientBase(object):
     def transaction_received(self, frame, more):
         self._tx_messages.append(frame)
         if not more:
-            if not len(self._tx_messages) == 2:
+            if not len(self._tx_messages) == 1:
                 print "Sequence with wrong messages", len(self._tx_messages)
                 self._tx_messages = []
                 return
-            hash, transaction = self._tx_messages
+            tx_data = self._tx_messages[0]
             self._tx_messages = []
-            self._tx_cb(hash, transaction)
+            self._tx_cb(tx_data)
 
     def setup(self, address):
         s = ZmqSocket(self.frame_received, self.zmq_version)
