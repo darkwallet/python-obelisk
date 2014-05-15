@@ -33,6 +33,8 @@ class ZmqSocket:
             return
         more = self._socket.getsockopt(zmq.RCVMORE)
         self._cb(data, more)
+        # keep polling till we have no more data
+        self.poll()
 
     def send(self, data, more=0):
         if more:
