@@ -35,17 +35,24 @@ class Bitset:
     def __repr__(self):
         return "Bitset(%s)" % str(self)
 
+    def __eq__(self, other):
+        return self._size == other._size and \
+            self._value == other._value
+
 if __name__ == "__main__":
-    b = Bitset(binary="001101110001010101111010101010011101")
-    assert b.serialize().encode("hex") == "9daa577103"
-    assert b.size == 36
-    assert str(b) == "001101110001010101111010101010011101"
+    a = Bitset(binary="001101110001010101111010101010011101")
+    assert a.serialize().encode("hex") == "9daa577103"
+    assert a.size == 36
+    assert str(a) == "001101110001010101111010101010011101"
     b = Bitset(36)
     b.deserialize("9daa577103".decode("hex"))
     assert b.size == 36
     assert str(b) == "001101110001010101111010101010011101"
-    b = Bitset(8)
-    b.deserialize("9daa577103".decode("hex"))
-    assert b.size == 8
-    assert str(b) == "10011101"
+    c = Bitset(8)
+    c.deserialize("9daa577103".decode("hex"))
+    assert c.size == 8
+    assert str(c) == "10011101"
+    assert a == b
+    assert c != a
+    assert c != b
 
