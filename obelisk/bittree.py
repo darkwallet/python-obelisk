@@ -42,7 +42,9 @@ class BitTree:
             self._add_branch(branch, binary, value)
 
     def _add_leaf(self, branch, value):
-        self._leaf[branch] = value
+        if self._leaf[branch] is None:
+            self._leaf[branch] = []
+        self._leaf[branch].append(value)
 
     def _add_branch(self, branch, binary, value):
         if self._branch[branch] is None:
@@ -62,7 +64,7 @@ class BitTree:
         result = self._leaf[branch]
         if result is None:
             return []
-        return [result]
+        return result
 
     def _children(self, branch):
         if self._branch[branch] is not None:
@@ -72,9 +74,9 @@ class BitTree:
     def _all_children(self):
         result = []
         if self._leaf.zero is not None:
-            result.append(self._leaf.zero)
+            result.extend(self._leaf.zero)
         if self._leaf.one is not None:
-            result.append(self._leaf.one)
+            result.extend(self._leaf.one)
         if self._branch.zero is not None:
             result.extend(self._branch.zero._all_children())
         if self._branch.one is not None:
@@ -84,21 +86,25 @@ class BitTree:
     def _lookup_branch(self, branch, binary):
         return self._branch[branch].lookup(binary)
 
-    def delete(self, binary):
+    def delete(self, binary, value):
         branch = binary[0]
         binary = binary[1:]
         assert branch == "1" or branch == "0"
         if not binary:
-            self._delete_leaf(branch)
+            self._delete_leaf(branch, value)
         else:
-            self._delete_branch(branch, binary)
+            self._delete_branch(branch, binary, value)
         return self._empty()
 
-    def _delete_leaf(self, branch):
-        self._leaf[branch] = None
+    def _delete_leaf(self, branch, value):
+        if self._leaf[branch] is None:
+            return
+        self._leaf[branch].remove(value)
+        if not self._leaf[branch]:
+            self._leaf[branch] = None
 
-    def _delete_branch(self, branch, binary):
-        is_empty = self._branch[branch].delete(binary)
+    def _delete_branch(self, branch, binary, value):
+        is_empty = self._branch[branch].delete(binary, value)
         if is_empty:
             self._branch[branch] = None
 
@@ -111,6 +117,7 @@ class BitTree:
 if __name__ == "__main__":
     tree = BitTree()
     tree.add("010101", 666)
+    tree.add("010101", 888)
     tree.add("101", 110)
     print tree
     tree.add("10111", 116)
@@ -119,6 +126,9 @@ if __name__ == "__main__":
     print tree.lookup("010")
     print tree.lookup("010101")
     print tree
-    tree.delete("10111")
+    tree.delete("10111", 116)
     print tree
+    print tree.lookup("101")
+    print tree.lookup("0")
+    print tree.lookup("1")
 
