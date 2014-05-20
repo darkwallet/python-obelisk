@@ -84,6 +84,8 @@ class BitTree:
         return result
 
     def _lookup_branch(self, branch, binary):
+        if self._branch[branch] is None:
+            return []
         return self._branch[branch].lookup(binary)
 
     def delete(self, binary, value):
@@ -131,4 +133,11 @@ if __name__ == "__main__":
     print tree.lookup("101")
     print tree.lookup("0")
     print tree.lookup("1")
+    print "------------"
+    tree = BitTree()
+    tree.add("10", 777)
+    tree.add("101", 333)
+    tree.add("1011", 222)
+    tree.add("00", 666)
+    print tree.lookup("1011")
 
