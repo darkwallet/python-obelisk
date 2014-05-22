@@ -28,3 +28,7 @@ Change the path /usr/local if you have zeromq installed elsewhere (for
 example, /home/user/usr/.
 
 It may also be possible to istall using pip (PyPI).
+
+Fially, install the package:
+
+  # python setup.py install
