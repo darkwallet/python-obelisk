@@ -2,4 +2,4 @@
 .gitignore
 *.egg-info
 src/
-
+.*.sw*
