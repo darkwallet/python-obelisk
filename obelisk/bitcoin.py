@@ -19,7 +19,7 @@
 
 import hashlib, base64, ecdsa, re
 from util import print_error
-from config import chain
+import  config
 import models
 import numbertheory
 import os
@@ -125,7 +125,7 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
-def hash_160_to_bc_address(h160, addrtype=chain.pubkey_version):
+def hash_160_to_bc_address(h160, addrtype=config.chain.pubkey_version):
     vh160 = chr(addrtype) + h160
     h = Hash(vh160)
     addr = vh160 + h[0:4]
@@ -214,12 +214,12 @@ def DecodeBase58Check(psz):
 def PrivKeyToSecret(privkey):
     return privkey[9:9+32]
 
-def SecretToASecret(secret, compressed=False, addrtype=chain.pubkey_version):
+def SecretToASecret(secret, compressed=False, addrtype=config.chain.pubkey_version):
     vchIn = chr((addrtype+128)&255) + secret
     if compressed: vchIn += '\01'
     return EncodeBase58Check(vchIn)
 
-def ASecretToSecret(key, addrtype=chain.pubkey_version):
+def ASecretToSecret(key, addrtype=config.chain.pubkey_version):
     vch = DecodeBase58Check(key)
     if vch and vch[0] == chr((addrtype+128)&255):
         return vch[1:]
