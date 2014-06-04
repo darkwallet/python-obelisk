@@ -705,12 +705,12 @@ class Transaction:
             addr, amount = output
             s += int_to_hex( amount, 8)                              # amount
             addrtype, hash_160 = bc_address_to_hash_160(addr)
-            if addrtype == chain.pubkey_version:
+            if addrtype == config.chain.pubkey_version:
                 script = '76a9'                                      # op_dup, op_hash_160
                 script += '14'                                       # push 0x14 bytes
                 script += hash_160.encode('hex')
                 script += '88ac'                                     # op_equalverify, op_checksig
-            elif addrtype == chain.script_version:
+            elif addrtype == config.chain.script_version:
                 script = 'a9'                                        # op_hash_160
                 script += '14'                                       # push 0x14 bytes
                 script += hash_160.encode('hex')
@@ -1003,7 +1003,7 @@ class EllipticCurveKey:
 
 def output_script(address):
     addrtype, hash_160 = bc_address_to_hash_160(address)
-    assert addrtype == chain.pubkey_version
+    assert addrtype == config.chain.pubkey_version
     script = '\x76\xa9'                 # op_dup, op_hash_160
     script += '\x14'                    # push 0x14 bytes
     script += hash_160
