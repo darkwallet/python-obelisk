@@ -2,6 +2,7 @@ import obelisk
 import sys
 from twisted.internet import reactor
 
+
 def build_output_info_list(unspent_rows):
     unspent_infos = []
     for row in unspent_rows:
@@ -13,6 +14,7 @@ def build_output_info_list(unspent_rows):
         unspent_infos.append(
             obelisk.OutputInfo(outpoint, value))
     return unspent_infos
+
 
 def history_fetched(ec, history):
     if ec is not None:
@@ -26,4 +28,3 @@ if __name__ == '__main__':
     client = obelisk.ObeliskOfLightClient("tcp://85.25.198.97:9091")
     client.fetch_history("1PRBVdCHoPPD3bz8sCZRTm6iAtuoqFctvx", history_fetched)
     reactor.run()
-

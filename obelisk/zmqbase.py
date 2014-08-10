@@ -1,4 +1,3 @@
-import sys
 import random
 import struct
 import logging
@@ -10,17 +9,21 @@ import logging
 #    from zmq_fallback import ZmqSocket
 from zmq_fallback import ZmqSocket
 
-from obelisk.serialize import checksum
 
 SNDMORE = 1
 
 MAX_UINT32 = 4294967295
 
+
 class ClientBase(object):
 
     valid_messages = []
 
-    def __init__(self, address, block_address=None, tx_address=None, version=3):
+    def __init__(self,
+                 address,
+                 block_address=None,
+                 tx_address=None,
+                 version=3):
         self._messages = []
         self._tx_messages = []
         self._block_messages = []
@@ -56,9 +59,12 @@ class ClientBase(object):
     def send_command(self, command, data='', cb=None):
         tx_id = random.randint(0, MAX_UINT32)
 
-        self.send(command, SNDMORE) # command
-        self.send(struct.pack('I', tx_id), SNDMORE) # id (random)
-        self.send(data, 0)    # data
+        # command
+        self.send(command, SNDMORE)
+        # id (random)
+        self.send(struct.pack('I', tx_id), SNDMORE)
+        # data
+        self.send(data, 0)
 
         if cb:
             self._subscriptions[tx_id] = cb
@@ -95,14 +101,16 @@ class ClientBase(object):
         self._block_messages.append(frame)
         if not more:
             nblocks = struct.unpack('Q', self._block_messages[3])[0]
-            if not len(self._block_messages) == 4+nblocks:
-                print "Sequence with wrong messages", len(self._block_messages), 4+nblocks
+            if not len(self._block_messages) == 4 + nblocks:
+                print "Sequence with wrong messages",\
+                      len(self._block_messages),\
+                      4 + nblocks
                 self._block_messages = []
                 return
             height, hash, header, tx_num = self._block_messages[:4]
             tx_hashes = self._block_messages[5:]
             if len(tx_num) >= 4:
-                tx_num = struct.unpack_from('I', tx_num, 0 )[0]
+                tx_num = struct.unpack_from('I', tx_num, 0)[0]
             else:
                 print "wrong tx_num length", len(tx_num), tx_num
                 tx_num = struct.unpack('I', tx_num.zfill(4))[0]
@@ -154,4 +162,3 @@ class ClientBase(object):
             row = struct.unpack_from(row_fmt, data, offset)
             rows.append(row)
         return rows
-

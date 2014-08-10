@@ -1,18 +1,16 @@
 import struct
-from decimal import Decimal
-
-from twisted.internet import reactor
 
 from zmqbase import ClientBase
 
 import bitcoin
-import models
 import serialize
 import error_code
+
 
 def unpack_error(data):
     value = struct.unpack_from('<I', data, 0)[0]
     return error_code.error_code.name_from_id(value)
+
 
 def pack_block_index(index):
     if type(index) == str:
@@ -23,13 +21,25 @@ def pack_block_index(index):
     else:
         raise ValueError("Unknown index type")
 
+
 class ObeliskOfLightClient(ClientBase):
-    valid_messages = ['fetch_block_header', 'fetch_history', 'subscribe',
-        'fetch_last_height', 'fetch_transaction', 'fetch_spend',
-        'fetch_transaction_index', 'fetch_block_transaction_hashes',
-        'fetch_block_height', 'fetch_stealth', 'update', 'renew']
+    valid_messages = [
+        'fetch_block_header',
+        'fetch_history',
+        'subscribe',
+        'fetch_last_height',
+        'fetch_transaction',
+        'fetch_spend',
+        'fetch_transaction_index',
+        'fetch_block_transaction_hashes',
+        'fetch_block_height',
+        'fetch_stealth',
+        'update',
+        'renew'
+    ]
 
     subscribed = 0
+
     # Command implementations
     def renew_address(self, address, cb=None):
         address_version, address_hash = \
@@ -51,20 +61,23 @@ class ObeliskOfLightClient(ClientBase):
         # run command
         self.send_command('address.subscribe', data, cb)
         if notification_cb:
-            if not address_hash in self._subscriptions['address']:
-                self._subscriptions['address'][address_hash] = []
-            if not notification_cb in self._subscriptions['address'][address_hash]:
-                self._subscriptions['address'][address_hash].append(notification_cb)
+            subscriptions = self._subscriptions['address']
+            if address_hash not in subscriptions:
+                subscriptions[address_hash] = []
+            subscriptions = self._subscriptions['address'][address_hash]
+            if notification_cb not in subscriptions:
+                subscriptions.append(notification_cb)
 
     def unsubscribe_address(self, address, subscribed_cb, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
 
-        if address_hash in self._subscriptions['address']:
-            if subscribed_cb in self._subscriptions['address'][address_hash]:
-               self._subscriptions['address'][address_hash].remove(subscribed_cb)
-               if len(self._subscriptions['address'][address_hash]) == 0:
-                   self._subscriptions['address'].pop(address_hash)
+        subscriptions = self._subscriptions['address']
+        if address_hash in subscriptions:
+            if subscribed_cb in subscriptions[address_hash]:
+                subscriptions[address_hash].remove(subscribed_cb)
+                if len(subscriptions[address_hash]) == 0:
+                    subscriptions.pop(address_hash)
         if cb:
             cb(None, address)
 
@@ -77,7 +90,7 @@ class ObeliskOfLightClient(ClientBase):
         """Fetches the output points, output values, corresponding input point
         spends and the block heights associated with a Bitcoin address.
         The returned history is a list of rows with the following fields:
-     
+
             output
             output_height
             value
@@ -118,13 +131,16 @@ class ObeliskOfLightClient(ClientBase):
         """Fetch the block height that contains a transaction and its index
         within a block."""
         data = serialize.ser_hash(tx_hash)
-        self.send_command('blockchain.fetch_transaction_index', data, cb)
+        self.send_command(
+            'blockchain.fetch_transaction_index', data, cb
+        )
 
     def fetch_block_transaction_hashes(self, index, cb):
         """Fetches list of transaction hashes in a block by block hash."""
         data = pack_block_index(index)
-        self.send_command('blockchain.fetch_block_transaction_hashes',
-            data, cb)
+        self.send_command(
+            'blockchain.fetch_block_transaction_hashes', data, cb
+        )
 
     def fetch_block_height(self, blk_hash, cb):
         """Fetches the height of a block given its hash."""
@@ -135,10 +151,10 @@ class ObeliskOfLightClient(ClientBase):
         """Fetch possible stealth results. These results can then be iterated
         to discover new payments belonging to a particular stealth address.
         This is for recipient privacy.
-        
+
         The prefix is a special value that can be adjusted to provide
         greater precision at the expense of deniability.
-        
+
         from_height is not guaranteed to only return results from that
         height, and may also include results from earlier blocks.
         It is provided as an optimisation. All results at and after
@@ -213,20 +229,19 @@ class ObeliskOfLightClient(ClientBase):
             tx_hash = tx_hash[::-1]
             rows.append((ephemkey, address, tx_hash))
         return (error, rows)
-        
+
     def _on_subscribe(self, data):
         self.subscribed += 1
         error = unpack_error(data)
         if error:
             print "Error subscribing"
-        if not self.subscribed%1000:
+        if not self.subscribed % 1000:
             print "Subscribed ok", self.subscribed
         return (error, True)
 
     def _on_update(self, data):
         address_version = struct.unpack_from('B', data, 0)[0]
         address_hash = data[1:21][::-1]
-        address = bitcoin.hash_160_to_bc_address(address_hash, address_version)
 
         height = struct.unpack_from('I', data, 21)[0]
         block_hash = data[25:57]
@@ -234,14 +249,15 @@ class ObeliskOfLightClient(ClientBase):
 
         if address_hash in self._subscriptions['address']:
             for update_cb in self._subscriptions['address'][address_hash]:
-                update_cb(address_version, address_hash, height, block_hash, tx)
+                update_cb(
+                    address_version, address_hash, height, block_hash, tx
+                )
 
     def _on_renew(self, data):
         self.subscribed += 1
         error = unpack_error(data)
         if error:
             print "Error subscribing"
-        if not self.subscribed%1000:
+        if not self.subscribed % 1000:
             print "Renew ok", self.subscribed
         return (error, True)
-

@@ -1,5 +1,3 @@
-import bitset
-
 class OneZero:
 
     def __init__(self):
@@ -25,6 +23,7 @@ class OneZero:
 
     def __repr__(self):
         return "<%s, %s>" % (self.zero, self.one)
+
 
 class BitTree:
 
@@ -140,4 +139,3 @@ if __name__ == "__main__":
     tree.add("1011", 222)
     tree.add("00", 666)
     print tree.lookup("1011")
-

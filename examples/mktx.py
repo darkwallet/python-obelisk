@@ -2,6 +2,7 @@ import sys
 import obelisk
 from decimal import Decimal as D
 
+
 def main(argv):
     tx = obelisk.Transaction()
     for switch, param in zip(argv[1::2], argv[2::2]):
@@ -14,7 +15,6 @@ def main(argv):
             address, value = param.split(":")
             value = D(value)
             add_output(tx, address, value)
-    prevout_address = "1JdbgyywETKEssy4jqFcKiZBmn7oxVKxcT"
     # initialize signing key
     key = obelisk.EllipticCurveKey()
     secret = "59cd7a1d11ef24a1687b7c20bdb9f3bb" \
@@ -26,11 +26,13 @@ def main(argv):
     print tx
     print tx.serialize().encode("hex")
 
+
 def add_input(tx, tx_hash, tx_index):
     input = obelisk.TxIn()
     input.previous_output.hash = tx_hash
     input.previous_output.index = tx_index
     tx.inputs.append(input)
+
 
 def add_output(tx, address, value):
     output = obelisk.TxOut()
@@ -38,6 +40,6 @@ def add_output(tx, address, value):
     output.script = obelisk.output_script(address)
     tx.outputs.append(output)
 
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv))
-

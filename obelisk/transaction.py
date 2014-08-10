@@ -1,6 +1,7 @@
 # Given a list of unspent outputs, return the optimal subset to satisfy
 # a given amount (and return the change).
 
+
 class OutputInfo(object):
 
     def __init__(self, point, value):
@@ -9,6 +10,7 @@ class OutputInfo(object):
 
     def __repr__(self):
         return "OutputInfo(point=%s, value=%i)" % (self.point, self.value)
+
 
 class SelectOutputsResult:
 
@@ -27,11 +29,13 @@ class SelectOutputsResult:
         return "SelectOutputsResult(points=%s, change=%i)" % (
             self._points, self.change)
 
+
 def min_nonthrow(values, key):
     assert values
     if len(values) == 1:
         return values[0]
     return min(values, key=key)
+
 
 def select_outputs(unspent, min_value):
     if not unspent:
@@ -60,4 +64,3 @@ def select_outputs(unspent, min_value):
             result.change = accum - min_value
             return result
     return None
-

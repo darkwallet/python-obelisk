@@ -7,7 +7,6 @@ from binascii import hexlify, unhexlify
 from hashlib import sha256
 import models
 
-from error_code import error_code, obelisk_exception
 
 # Py3 compatibility
 import sys
@@ -39,6 +38,7 @@ def deser_string(f):
         nit = struct.unpack(b"<Q", f.read(8))[0]
     return f.read(nit)
 
+
 def ser_string(s):
     if len(s) < 253:
         return bchr(len(s)) + s
@@ -48,11 +48,14 @@ def ser_string(s):
         return bchr(254) + struct.pack(b"<I", len(s)) + s
     return bchr(255) + struct.pack(b"<Q", len(s)) + s
 
+
 def deser_hash(f):
     return f.read(32)
 
+
 def ser_hash(h):
     return h[::-1]
+
 
 def deser_uint256(f):
     r = 0
@@ -61,12 +64,14 @@ def deser_uint256(f):
         r += t << (i * 32)
     return r
 
+
 def ser_uint256(u):
     rs = b""
     for i in range(8):
         rs += struct.pack(b"<I", u & 0xFFFFFFFF)
         u >>= 32
     return rs
+
 
 def ser_uint160(u):
     rs = b""
@@ -75,12 +80,14 @@ def ser_uint160(u):
         u >>= 32
     return rs
 
+
 def uint160_from_str(s):
     r = 0
     t = struct.unpack(b"<IIIII", s[:20])
     for i in range(5):
         r += t[i] << (i * 32)
     return r
+
 
 def uint256_from_str(s):
     r = 0
@@ -89,14 +96,17 @@ def uint256_from_str(s):
         r += t[i] << (i * 32)
     return r
 
+
 def uint256_from_compact(c):
     nbytes = (c >> 24) & 0xFF
     v = (c & 0xFFFFFF) << (8 * (nbytes - 3))
     return v
 
+
 def uint256_to_shortstr(u):
     s = "%064x" % (u,)
     return s[:16]
+
 
 def deser_variable_uint(f):
     length = struct.unpack(b"<B", f.read(1))[0]
@@ -107,6 +117,7 @@ def deser_variable_uint(f):
     elif length == 0xfe:
         return struct.unpack(b"<I", f.read(4))[0]
     return struct.unpack(b"<Q", f.read(8))[0]
+
 
 def deser_vector(f, c, arg1=None):
     count = deser_variable_uint(f)
@@ -129,6 +140,7 @@ def deser_vector(f, c, arg1=None):
         r.append(t)
     return r
 
+
 def ser_vector(l):
     r = b""
     if len(l) < 253:
@@ -139,8 +151,8 @@ def ser_vector(l):
         r = bchr(254) + struct.pack(b"<I", len(l))
     else:
         r = bchr(255) + struct.pack(b"<Q", len(l))
-    for i in l:
 
+    for i in l:
         if type(i) is models.TxIn:
             r += ser_txin(i)
         elif type(i) is models.TxOut:
@@ -151,6 +163,7 @@ def ser_vector(l):
             raise NotImplementedError
 
     return r
+
 
 def deser_uint256_vector(f):
     nit = struct.unpack(b"<B", f.read(1))[0]
@@ -166,19 +179,21 @@ def deser_uint256_vector(f):
         r.append(t)
     return r
 
+
 def ser_uint256_vector(l):
     r = b""
     if len(l) < 253:
         r = bchr(len(l))
-    elif len(s) < 0x10000:
+    elif len(l) < 0x10000:
         r = bchr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000:
+    elif len(l) < 0x100000000:
         r = bchr(254) + struct.pack(b"<I", len(l))
     else:
         r = bchr(255) + struct.pack(b"<Q", len(l))
     for i in l:
         r += ser_uint256(i)
     return r
+
 
 def deser_string_vector(f):
     nit = struct.unpack(b"<B", f.read(1))[0]
@@ -194,19 +209,21 @@ def deser_string_vector(f):
         r.append(t)
     return r
 
+
 def ser_string_vector(l):
     r = b""
     if len(l) < 253:
         r = bchr(len(l))
-    elif len(s) < 0x10000:
+    elif len(l) < 0x10000:
         r = bchr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000:
+    elif len(l) < 0x100000000:
         r = bchr(254) + struct.pack(b"<I", len(l))
     else:
         r = bchr(255) + struct.pack(b"<Q", len(l))
     for sv in l:
         r += ser_string(sv)
     return r
+
 
 def deser_int_vector(f):
     nit = struct.unpack(b"<B", f.read(1))[0]
@@ -222,13 +239,14 @@ def deser_int_vector(f):
         r.append(t)
     return r
 
+
 def ser_int_vector(l):
     r = b""
     if len(l) < 253:
         r = bchr(len(l))
-    elif len(s) < 0x10000:
+    elif len(l) < 0x10000:
         r = bchr(253) + struct.pack(b"<H", len(l))
-    elif len(s) < 0x100000000:
+    elif len(l) < 0x100000000:
         r = bchr(254) + struct.pack(b"<I", len(l))
     else:
         r = bchr(255) + struct.pack(b"<Q", len(l))
@@ -236,8 +254,12 @@ def ser_int_vector(l):
         r += struct.pack(b"<i", i)
     return r
 
+
 def Hash(s):
-    return uint256_from_str(hashlib.sha256(hashlib.sha256(s).digest()).digest())
+    return uint256_from_str(
+        hashlib.sha256(hashlib.sha256(s).digest()).digest()
+    )
+
 
 def Hash160(s):
     h = hashlib.new('ripemd160')
@@ -256,11 +278,13 @@ def ser_destination(destination):
 
     return serialized
 
+
 def deser_txout(f):
     txout = models.TxOut()
     txout.value = struct.unpack(b"<q", f.read(8))[0]
     txout.script = deser_string(f)
     return txout
+
 
 def ser_txout(txout):
     r = b""
@@ -295,6 +319,7 @@ def deser_txin(f):
     txin.script = deser_string(f)
     txin.sequence = deser_uint32(f)
     return txin
+
 
 def ser_txin(txin):
     r = b""
@@ -361,7 +386,8 @@ def deser_block(f):
 
     blk.header = deser_block_header(f)
     blk.transactions = deser_vector(f, models.Transaction)
-    return Block
+    return blk
+
 
 def ser_block(blk):
     r = b""
@@ -370,7 +396,6 @@ def ser_block(blk):
 
     return r
 
-
     #tx.version = struct.unpack(b"<i", f.read(4))[0]
     #tx.vin = deser_vector(f, TxIn)
     #tx.vout = deser_vector(f, TxOut)
@@ -378,12 +403,10 @@ def ser_block(blk):
 
 
 def deser_history_row(f):
-
     if type(f) is not io.BytesIO:
         f = io.BytesIO(f)
 
     hr = models.history_row()
-
 
     hr.output_hash = f.read(32)
     hr.output_index = deser_uint32(f)
@@ -395,6 +418,7 @@ def deser_history_row(f):
     hr.spend_height = deser_uint32(f)
 
     return hr
+
 
 def ser_history_row(hr):
     r = b""
@@ -413,14 +437,16 @@ def ser_history_row(hr):
 
 def deser_history_row_list(bytes):
     row_bytes = 88
-    num_rows = len(bytes)/88
+    num_rows = len(bytes) / row_bytes
 
-    assert(len(bytes) % 88 == 0)
+    assert(len(bytes) % row_bytes == 0)
 
     history_list = []
 
     for i in range(num_rows):
-        history_list.append(deser_history_row(bytes[i*88, i*88+88]))
+        begin = i * row_bytes
+        end = begin + row_bytes
+        history_list.append(deser_history_row(bytes[begin, end]))
 
     return history_list
 
@@ -472,6 +498,7 @@ def ser_data(command, data):
 
         return r
 
+
 def deser_address_update(f):
     if type(f) is not io.BytesIO:
         f = io.BytesIO(f)
@@ -496,7 +523,8 @@ def deser_address_update(f):
 #            "address.fetch_history"]
 
 
-# deserialize and remove the ec here, this leaves all the other functions able to
+# deserialize and remove the ec here,
+# this leaves all the other functions able to
 # do deserialization on normal bitcoin serials.
 def deser_data(command, data_bytes):
     if command == "blockchain.fetch_transaction":
@@ -550,10 +578,3 @@ def deser_data(command, data_bytes):
 
         ec = 0
         return ec, deser_address_update(f)
-
-
-
-
-
-
-

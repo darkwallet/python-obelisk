@@ -8,4 +8,3 @@ key.set_secret(secret)
 digest = obelisk.Hash("message")
 signature = key.sign(digest)
 assert key.verify(digest, signature)
-

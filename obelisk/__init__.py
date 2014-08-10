@@ -4,6 +4,7 @@ from models import *
 from transaction import *
 from zmqbase import MAX_UINT32
 
+
 def select_network(network):
     import config
     if "test" in network.lower():
