@@ -17,42 +17,48 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 
-import hashlib, base64, ecdsa, re
+import hashlib
+import base64
+import ecdsa
+import re
 from util import print_error
-import  config
+import config
 import models
 import numbertheory
 import os
 
+
 def rev_hex(s):
     return s.decode('hex')[::-1].encode('hex')
+
 
 def int_to_hex(i, length=1):
     s = hex(i)[2:].rstrip('L')
     s = "0"*(2*length - len(s)) + s
     return rev_hex(s)
 
+
 def var_int(i):
     # https://en.bitcoin.it/wiki/Protocol_specification#Variable_length_integer
-    if i<0xfd:
+    if i < 0xfd:
         return int_to_hex(i)
-    elif i<=0xffff:
-        return "fd"+int_to_hex(i,2)
-    elif i<=0xffffffff:
-        return "fe"+int_to_hex(i,4)
+    elif i <= 0xffff:
+        return "fd" + int_to_hex(i, 2)
+    elif i <= 0xffffffff:
+        return "fe" + int_to_hex(i, 4)
     else:
-        return "ff"+int_to_hex(i,8)
+        return "ff" + int_to_hex(i, 8)
+
 
 def op_push(i):
-    if i<0x4c:
+    if i < 0x4c:
         return int_to_hex(i)
-    elif i<0xff:
+    elif i < 0xff:
         return '4c' + int_to_hex(i)
-    elif i<0xffff:
-        return '4d' + int_to_hex(i,2)
+    elif i < 0xffff:
+        return '4d' + int_to_hex(i, 2)
     else:
-        return '4e' + int_to_hex(i,4)
-    
+        return '4e' + int_to_hex(i, 4)
 
 
 Hash = lambda x: hashlib.sha256(hashlib.sha256(x).digest()).digest()
@@ -84,14 +90,16 @@ def i2d_ECPrivateKey(pkey, compressed=False):
               '022100' + \
               '%064x' % _r + \
               '020101a144034200'
-        
+
     return key.decode('hex') + i2o_ECPublicKey(pkey.pubkey, compressed)
-    
+
+
 def i2o_ECPublicKey(pubkey, compressed=False):
     # public keys are 65 bytes long (520 bits)
     # 0x04 + 32-byte X-coordinate + 32-byte Y-coordinate
     # 0x00 = point at infinity, 0x02 and 0x03 = compressed, 0x04 = uncompressed
-    # compressed keys: <sign> <x> where <sign> is 0x02 if y is even and 0x03 if y is odd
+    # compressed keys:
+    # <sign> <x> where <sign> is 0x02 if y is even and 0x03 if y is odd
     if compressed:
         if pubkey.point.y() & 1:
             key = '03' + '%064x' % pubkey.point.x()
@@ -101,14 +109,13 @@ def i2o_ECPublicKey(pubkey, compressed=False):
         key = '04' + \
               '%064x' % pubkey.point.x() + \
               '%064x' % pubkey.point.y()
-            
+
     return key.decode('hex')
-            
+
 # end pywallet openssl private key implementation
 
-                                                
-            
-############ functions from pywallet ##################### 
+############ functions from pywallet #####################
+
 
 def hash_160(public_key):
     try:
@@ -125,28 +132,32 @@ def public_key_to_bc_address(public_key):
     h160 = hash_160(public_key)
     return hash_160_to_bc_address(h160)
 
+
 def hash_160_to_bc_address(h160, addrtype=config.chain.pubkey_version):
     vh160 = chr(addrtype) + h160
     h = Hash(vh160)
     addr = vh160 + h[0:4]
     return b58encode(addr)
 
+
 def bc_address_to_hash_160(addr):
     bytes = b58decode(addr, 25)
     return ord(bytes[0]), bytes[1:21]
+
 
 def encode_point(pubkey, compressed=False):
     order = generator_secp256k1.order()
     p = pubkey.pubkey.point
     x_str = ecdsa.util.number_to_string(p.x(), order)
-    y_str = ecdsa.util.number_to_string(p.y(), order)
     if compressed:
         return chr(2 + (p.y() & 1)) + x_str
     else:
-        return chr(4) + pubkey.to_string() #x_str + y_str
+        # x_str + y_str
+        return chr(4) + pubkey.to_string()
 
 __b58chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 __b58base = len(__b58chars)
+
 
 def b58encode(v):
     """ encode v, which is a string of bytes, to base58."""
@@ -166,10 +177,13 @@ def b58encode(v):
     # leading 0-bytes in the input become leading-1s
     nPad = 0
     for c in v:
-        if c == '\0': nPad += 1
-        else: break
+        if c == '\0':
+            nPad += 1
+        else:
+            break
 
     return (__b58chars[0]*nPad) + result
+
 
 def b58decode(v, length):
     """ decode v into a string of len bytes."""
@@ -186,8 +200,10 @@ def b58decode(v, length):
 
     nPad = 0
     for c in v:
-        if c == __b58chars[0]: nPad += 1
-        else: break
+        if c == __b58chars[0]:
+            nPad += 1
+        else:
+            break
 
     result = chr(0)*nPad + result
     if length is not None and len(result) != length:
@@ -200,6 +216,7 @@ def EncodeBase58Check(vchIn):
     hash = Hash(vchIn)
     return b58encode(vchIn + hash[0:4])
 
+
 def DecodeBase58Check(psz):
     vchRet = b58decode(psz, None)
     key = vchRet[0:-4]
@@ -211,20 +228,26 @@ def DecodeBase58Check(psz):
     else:
         return key
 
+
 def PrivKeyToSecret(privkey):
     return privkey[9:9+32]
 
-def SecretToASecret(secret, compressed=False, addrtype=config.chain.pubkey_version):
-    vchIn = chr((addrtype+128)&255) + secret
-    if compressed: vchIn += '\01'
+
+def SecretToASecret(secret,
+                    compressed=False,
+                    addrtype=config.chain.pubkey_version):
+    vchIn = chr((addrtype + 128) & 255) + secret
+    if compressed:
+        vchIn += '\01'
     return EncodeBase58Check(vchIn)
+
 
 def ASecretToSecret(key, addrtype=config.chain.pubkey_version):
     vch = DecodeBase58Check(key)
-    if vch and vch[0] == chr((addrtype+128)&255):
+    if vch and vch[0] == chr((addrtype + 128) & 255):
         return vch[1:]
-    else:
-        return False
+    return False
+
 
 def regenerate_key(sec):
     b = ASecretToSecret(sec)
@@ -234,14 +257,18 @@ def regenerate_key(sec):
     secret = int('0x' + b.encode('hex'), 16)
     return EC_KEY(secret)
 
+
 def GetPubKey(pubkey, compressed=False):
     return i2o_ECPublicKey(pubkey, compressed)
+
 
 def GetPrivKey(pkey, compressed=False):
     return i2d_ECPrivateKey(pkey, compressed)
 
+
 def GetSecret(pkey):
     return ('%064x' % pkey.secret).decode('hex')
+
 
 def is_compressed(sec):
     b = ASecretToSecret(sec)
@@ -255,9 +282,8 @@ def address_from_private_key(sec):
 
     # figure out if private key is compressed
     compressed = is_compressed(sec)
-        
+
     # rebuild private and public key from regenerated secret
-    private_key = GetPrivKey(pkey, compressed)
     public_key = GetPubKey(pkey.pubkey, compressed)
     address = public_key_to_bc_address(public_key)
     return address
@@ -265,7 +291,8 @@ def address_from_private_key(sec):
 
 def is_valid(addr):
     ADDRESS_RE = re.compile('[1-9A-HJ-NP-Za-km-z]{26,}\\Z')
-    if not ADDRESS_RE.match(addr): return False
+    if not ADDRESS_RE.match(addr):
+        return False
     try:
         addrtype, h = bc_address_to_hash_160(addr)
     except:
@@ -282,33 +309,52 @@ _b = 0x0000000000000000000000000000000000000000000000000000000000000007L
 _a = 0x0000000000000000000000000000000000000000000000000000000000000000L
 _Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798L
 _Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8L
-curve_secp256k1 = ecdsa.ellipticcurve.CurveFp( _p, _a, _b )
-generator_secp256k1 = ecdsa.ellipticcurve.Point( curve_secp256k1, _Gx, _Gy, _r )
-oid_secp256k1 = (1,3,132,0,10)
-SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1 ) 
+curve_secp256k1 = ecdsa.ellipticcurve.CurveFp(_p, _a, _b)
+generator_secp256k1 = ecdsa.ellipticcurve.Point(curve_secp256k1, _Gx, _Gy, _r)
+oid_secp256k1 = (1, 3, 132, 0, 10)
+SECP256k1 = ecdsa.curves.Curve(
+    "SECP256k1",
+    curve_secp256k1,
+    generator_secp256k1,
+    oid_secp256k1
+)
 ec_order = _r
 
 from ecdsa.util import string_to_number, number_to_string
 
+
 def msg_magic(message):
-    return "\x18Bitcoin Signed Message:\n" + chr( len(message) ) + message
+    return "\x18Bitcoin Signed Message:\n" + chr(len(message)) + message
 
 
 class EC_KEY(object):
-    def __init__( self, secret ):
-        self.pubkey = ecdsa.ecdsa.Public_key( generator_secp256k1, generator_secp256k1 * secret )
-        self.privkey = ecdsa.ecdsa.Private_key( self.pubkey, secret )
+    def __init__(self, secret):
+        self.pubkey = ecdsa.ecdsa.Public_key(
+            generator_secp256k1,
+            generator_secp256k1 * secret
+        )
+        self.privkey = ecdsa.ecdsa.Private_key(self.pubkey, secret)
         self.secret = secret
 
     def sign_message(self, message, compressed, address):
-        private_key = ecdsa.SigningKey.from_secret_exponent( self.secret, curve = SECP256k1 )
+        private_key = ecdsa.SigningKey.from_secret_exponent(
+            self.secret, curve=SECP256k1
+        )
         public_key = private_key.get_verifying_key()
-        signature = private_key.sign_digest( Hash( msg_magic(message) ), sigencode = ecdsa.util.sigencode_string )
-        assert public_key.verify_digest( signature, Hash( msg_magic(message) ), sigdecode = ecdsa.util.sigdecode_string)
+        signature = private_key.sign_digest(
+            Hash(msg_magic(message)), sigencode=ecdsa.util.sigencode_string
+        )
+        assert public_key.verify_digest(
+            signature,
+            Hash(msg_magic(message)),
+            sigdecode=ecdsa.util.sigdecode_string
+        )
         for i in range(4):
-            sig = base64.b64encode( chr(27 + i + (4 if compressed else 0)) + signature )
+            sig = base64.b64encode(
+                chr(27 + i + (4 if compressed else 0)) + signature
+            )
             try:
-                self.verify_message( address, sig, message)
+                self.verify_message(address, sig, message)
                 return sig
             except:
                 continue
@@ -317,16 +363,17 @@ class EC_KEY(object):
 
     @classmethod
     def verify_message(self, address, signature, message):
-        """ See http://www.secg.org/download/aid-780/sec1-v2.pdf for the math """
-        from ecdsa import numbertheory, ellipticcurve, util
+        """See http://www.secg.org/download/aid-780/sec1-v2.pdf
+           for the math"""
         import msqr
         curve = curve_secp256k1
         G = generator_secp256k1
         order = G.order()
         # extract r,s from signature
         sig = base64.b64decode(signature)
-        if len(sig) != 65: raise BaseException("Wrong encoding")
-        r,s = util.sigdecode_string(sig[1:], order)
+        if len(sig) != 65:
+            raise BaseException("Wrong encoding")
+        r, s = ecdsa.util.sigdecode_string(sig[1:], order)
         nV = ord(sig[0])
         if nV < 27 or nV >= 35:
             raise BaseException("Bad encoding")
@@ -340,35 +387,38 @@ class EC_KEY(object):
         # 1.1
         x = r + (recid/2) * order
         # 1.3
-        alpha = ( x * x * x  + curve.a() * x + curve.b() ) % curve.p()
+        alpha = (x * x * x + curve.a() * x + curve.b()) % curve.p()
         beta = msqr.modular_sqrt(alpha, curve.p())
         y = beta if (beta - recid) % 2 == 0 else curve.p() - beta
         # 1.4 the constructor checks that nR is at infinity
-        R = ellipticcurve.Point(curve, x, y, order)
+        R = ecdsa.ellipticcurve.Point(curve, x, y, order)
         # 1.5 compute e from message:
-        h = Hash( msg_magic(message) )
+        h = Hash(msg_magic(message))
         e = string_to_number(h)
         minus_e = -e % order
         # 1.6 compute Q = r^-1 (sR - eG)
-        inv_r = numbertheory.inverse_mod(r,order)
-        Q = inv_r * ( s * R + minus_e * G )
-        public_key = ecdsa.VerifyingKey.from_public_point( Q, curve = SECP256k1 )
+        inv_r = ecdsa.numbertheory.inverse_mod(r, order)
+        Q = inv_r * (s * R + minus_e * G)
+        public_key = ecdsa.VerifyingKey.from_public_point(Q, curve=SECP256k1)
         # check that Q is the public key
-        public_key.verify_digest( sig[1:], h, sigdecode = ecdsa.util.sigdecode_string)
+        public_key.verify_digest(
+            sig[1:], h, sigdecode=ecdsa.util.sigdecode_string
+        )
         # check that we get the original signing address
-        addr = public_key_to_bc_address( encode_point(public_key, compressed) )
+        addr = public_key_to_bc_address(encode_point(public_key, compressed))
         if address != addr:
             raise BaseException("Bad signature")
 
 
 ###################################### BIP32 ##############################
 
-random_seed = lambda n: "%032x"%ecdsa.util.randrange( pow(2,n) )
+random_seed = lambda n: "%032x" % ecdsa.util.randrange(pow(2, n))
 BIP32_PRIME = 0x80000000
+
 
 def bip32_init(seed):
     import hmac
-    seed = seed.decode('hex')        
+    seed = seed.decode('hex')
     I = hmac.new("Bitcoin seed", seed, hashlib.sha512).digest()
 
     master_secret = I[0:32]
@@ -381,128 +431,153 @@ def bip32_init(seed):
 def get_pubkeys_from_secret(secret):
     # public key
     curve = SECP256k1
-    private_key = ecdsa.SigningKey.from_string( secret, curve = SECP256k1 )
+    private_key = ecdsa.SigningKey.from_string(secret, curve=curve)
     public_key = private_key.get_verifying_key()
     K = public_key.to_string()
-    K_compressed = GetPubKey(public_key.pubkey,True)
+    K_compressed = GetPubKey(public_key.pubkey, True)
     return K, K_compressed
 
 
-
-    
 def CKD(k, c, n):
     import hmac
-    from ecdsa.util import string_to_number, number_to_string
     order = generator_secp256k1.order()
-    keypair = EC_KEY(string_to_number(k))
-    K = GetPubKey(keypair.pubkey,True)
+    keypair = EC_KEY(ecdsa.util.string_to_number(k))
+    K = GetPubKey(keypair.pubkey, True)
 
     if n & BIP32_PRIME:
-        data = chr(0) + k + rev_hex(int_to_hex(n,4)).decode('hex')
-        I = hmac.new(c, data, hashlib.sha512).digest()
+        data = chr(0) + k + rev_hex(int_to_hex(n, 4)).decode('hex')
+        I = hmac.new(
+            c, data, hashlib.sha512
+        ).digest()
     else:
-        I = hmac.new(c, K + rev_hex(int_to_hex(n,4)).decode('hex'), hashlib.sha512).digest()
-        
-    k_n = number_to_string( (string_to_number(I[0:32]) + string_to_number(k)) % order , order )
+        I = hmac.new(
+            c, K + rev_hex(int_to_hex(n, 4)).decode('hex'), hashlib.sha512
+        ).digest()
+
+    k_n = ecdsa.util.number_to_string(
+        (ecdsa.util.string_to_number(I[0:32]) + ecdsa.util.string_to_number(k)) % order, order
+    )
     c_n = I[32:]
     return k_n, c_n
 
 
 def CKD_prime(K, c, n):
     import hmac
-    from ecdsa.util import string_to_number, number_to_string
-    order = generator_secp256k1.order()
 
-    if n & BIP32_PRIME: raise
+    if n & BIP32_PRIME:
+        raise
 
-    K_public_key = ecdsa.VerifyingKey.from_string( K, curve = SECP256k1 )
-    K_compressed = GetPubKey(K_public_key.pubkey,True)
+    K_public_key = ecdsa.VerifyingKey.from_string(K, curve=SECP256k1)
+    K_compressed = GetPubKey(K_public_key.pubkey, True)
 
-    I = hmac.new(c, K_compressed + rev_hex(int_to_hex(n,4)).decode('hex'), hashlib.sha512).digest()
+    I = hmac.new(
+        c,
+        K_compressed + rev_hex(int_to_hex(n, 4)).decode('hex'),
+        hashlib.sha512
+    ).digest()
 
     curve = SECP256k1
-    pubkey_point = string_to_number(I[0:32])*curve.generator + K_public_key.pubkey.point
-    public_key = ecdsa.VerifyingKey.from_public_point( pubkey_point, curve = SECP256k1 )
+    pubkey_point = ecdsa.util.string_to_number(I[0:32]) * curve.generator + K_public_key.pubkey.point
+    public_key = ecdsa.VerifyingKey.from_public_point(
+        pubkey_point, curve=curve
+    )
 
     K_n = public_key.to_string()
-    K_n_compressed = GetPubKey(public_key.pubkey,True)
+    K_n_compressed = GetPubKey(public_key.pubkey, True)
     c_n = I[32:]
 
     return K_n, K_n_compressed, c_n
 
 
-
 class ElectrumSequence:
     """  Privatekey(type,n) = Master_private_key + H(n|S|type)  """
 
-    def __init__(self, mpk, mpk2 = None, mpk3 = None):
+    def __init__(self, mpk, mpk2=None, mpk3=None):
         self.mpk = mpk
         self.mpk2 = mpk2
         self.mpk3 = mpk3
-        self.master_public_key = ecdsa.VerifyingKey.from_string( mpk.decode('hex'), curve = SECP256k1 )
+        self.master_public_key = ecdsa.VerifyingKey.from_string(
+            mpk.decode('hex'), curve=SECP256k1
+        )
 
     @classmethod
     def mpk_from_seed(klass, seed):
         curve = SECP256k1
         secexp = klass.stretch_key(seed)
-        master_private_key = ecdsa.SigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
+        master_private_key = ecdsa.SigningKey.from_secret_exponent(
+            secexp, curve=curve
+        )
         master_public_key = master_private_key.get_verifying_key().to_string().encode('hex')
         return master_public_key
 
     @classmethod
-    def stretch_key(self,seed):
+    def stretch_key(self, seed):
         oldseed = seed
         for i in range(100000):
             seed = hashlib.sha256(seed + oldseed).digest()
-        return string_to_number( seed )
+        return string_to_number(seed)
 
     def get_sequence(self, sequence, mpk):
         for_change, n = sequence
-        return string_to_number( Hash( "%d:%d:"%(n,for_change) + mpk.decode('hex') ) )
+        return string_to_number(
+            Hash("%d:%d:" % (n, for_change) + mpk.decode('hex'))
+        )
 
     def get_address(self, sequence):
         if not self.mpk2:
             pubkey = self.get_pubkey(sequence)
-            address = public_key_to_bc_address( pubkey.decode('hex') )
+            address = public_key_to_bc_address(pubkey.decode('hex'))
         elif not self.mpk3:
             pubkey1 = self.get_pubkey(sequence)
-            pubkey2 = self.get_pubkey(sequence, mpk = self.mpk2)
-            address = Transaction.multisig_script([pubkey1, pubkey2], 2)["address"]
+            pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
+            script = Transaction.multisig_script([pubkey1, pubkey2], 2)
+            address = script["address"]
         else:
             pubkey1 = self.get_pubkey(sequence)
-            pubkey2 = self.get_pubkey(sequence, mpk = self.mpk2)
-            pubkey3 = self.get_pubkey(sequence, mpk = self.mpk3)
-            address = Transaction.multisig_script([pubkey1, pubkey2, pubkey3], 2)["address"]
+            pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
+            pubkey3 = self.get_pubkey(sequence, mpk=self.mpk3)
+            script = Transaction.multisig_script(
+                [pubkey1, pubkey2, pubkey3], 2
+            )
+            address = script["address"]
         return address
 
     def get_pubkey(self, sequence, mpk=None):
         curve = SECP256k1
-        if mpk is None: mpk = self.mpk
+        if mpk is None:
+            mpk = self.mpk
         z = self.get_sequence(sequence, mpk)
         master_public_key = self.master_public_key
         pubkey_point = master_public_key.pubkey.point + z*curve.generator
-        public_key2 = ecdsa.VerifyingKey.from_public_point( pubkey_point, curve = SECP256k1 )
+        public_key2 = ecdsa.VerifyingKey.from_public_point(
+            pubkey_point, curve=curve
+        )
         return '04' + public_key2.to_string().encode('hex')
 
     def get_private_key_from_stretched_exponent(self, sequence, secexp):
         order = generator_secp256k1.order()
-        secexp = ( secexp + self.get_sequence(sequence, self.mpk) ) % order
-        pk = number_to_string( secexp, generator_secp256k1.order() )
+        secexp = (secexp + self.get_sequence(sequence, self.mpk)) % order
+        pk = number_to_string(secexp, generator_secp256k1.order())
         compressed = False
-        return SecretToASecret( pk, compressed )
-        
+        return SecretToASecret(pk, compressed)
+
     def get_private_key(self, sequence, seed):
         secexp = self.stretch_key(seed)
         return self.get_private_key_from_stretched_exponent(sequence, secexp)
 
     def get_private_keys(self, sequence_list, seed):
         secexp = self.stretch_key(seed)
-        return [ self.get_private_key_from_stretched_exponent( sequence, secexp) for sequence in sequence_list]
+        return [
+            self.get_private_key_from_stretched_exponent(sequence, secexp)
+            for sequence in sequence_list
+        ]
 
     def check_seed(self, seed):
         curve = SECP256k1
         secexp = self.stretch_key(seed)
-        master_private_key = ecdsa.SigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
+        master_private_key = ecdsa.SigningKey.from_secret_exponent(
+            secexp, curve=curve
+        )
         master_public_key = master_private_key.get_verifying_key().to_string().encode('hex')
         if master_public_key != self.mpk:
             print_error('invalid password (mpk)')
@@ -515,34 +590,38 @@ class ElectrumSequence:
             redeemScript = None
         elif not self.mpk3:
             pubkey1 = self.get_pubkey(sequence)
-            pubkey2 = self.get_pubkey(sequence,mpk=self.mpk2)
-            pk_addr = public_key_to_bc_address( pubkey1.decode('hex') ) # we need to return that address to get the right private key
-            redeemScript = Transaction.multisig_script([pubkey1, pubkey2], 2)['redeemScript']
+            pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
+            # we need to return that address to get the right private key
+            pk_addr = public_key_to_bc_address(pubkey1.decode('hex'))
+            redeemScript = Transaction.multisig_script(
+                [pubkey1, pubkey2], 2
+            )['redeemScript']
         else:
             pubkey1 = self.get_pubkey(sequence)
             pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
             pubkey3 = self.get_pubkey(sequence, mpk=self.mpk3)
-            pk_addr = public_key_to_bc_address( pubkey1.decode('hex') ) # we need to return that address to get the right private key
-            redeemScript = Transaction.multisig_script([pubkey1, pubkey2, pubkey3], 2)['redeemScript']
+            pk_addr = public_key_to_bc_address(pubkey1.decode('hex'))  # we need to return that address to get the right private key
+            redeemScript = Transaction.multisig_script(
+                [pubkey1, pubkey2, pubkey3], 2
+            )['redeemScript']
         return pk_addr, redeemScript
-
-
 
 
 class BIP32Sequence:
 
-    def __init__(self, mpk, mpk2 = None, mpk3 = None):
+    def __init__(self, mpk, mpk2=None, mpk3=None):
         self.mpk = mpk
         self.mpk2 = mpk2
         self.mpk3 = mpk3
-    
+
     @classmethod
     def mpk_from_seed(klass, seed):
         master_secret, master_chain, master_public_key, master_public_key_compressed = bip32_init(seed)
         return master_public_key.encode('hex'), master_chain.encode('hex')
 
-    def get_pubkey(self, sequence, mpk = None):
-        if not mpk: mpk = self.mpk
+    def get_pubkey(self, sequence, mpk=None):
+        if not mpk:
+            mpk = self.mpk
         master_public_key, master_chain = mpk
         K = master_public_key.decode('hex')
         chain = master_chain.decode('hex')
@@ -553,16 +632,20 @@ class BIP32Sequence:
     def get_address(self, sequence):
         if not self.mpk2:
             pubkey = self.get_pubkey(sequence)
-            address = public_key_to_bc_address( pubkey.decode('hex') )
+            address = public_key_to_bc_address(pubkey.decode('hex'))
         elif not self.mpk3:
             pubkey1 = self.get_pubkey(sequence)
-            pubkey2 = self.get_pubkey(sequence, mpk = self.mpk2)
-            address = Transaction.multisig_script([pubkey1, pubkey2], 2)["address"]
+            pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
+            address = Transaction.multisig_script(
+                [pubkey1, pubkey2], 2
+            )["address"]
         else:
             pubkey1 = self.get_pubkey(sequence)
-            pubkey2 = self.get_pubkey(sequence, mpk = self.mpk2)
-            pubkey3 = self.get_pubkey(sequence, mpk = self.mpk3)
-            address = Transaction.multisig_script([pubkey1, pubkey2, pubkey3], 2)["address"]
+            pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
+            pubkey3 = self.get_pubkey(sequence, mpk=self.mpk3)
+            address = Transaction.multisig_script(
+                [pubkey1, pubkey2, pubkey3], 2
+            )["address"]
         return address
 
     def get_private_key(self, sequence, seed):
@@ -574,11 +657,15 @@ class BIP32Sequence:
         return SecretToASecret(k, True)
 
     def get_private_keys(self, sequence_list, seed):
-        return [ self.get_private_key( sequence, seed) for sequence in sequence_list]
+        return [
+            self.get_private_key(sequence, seed) for sequence in sequence_list
+        ]
 
     def check_seed(self, seed):
         master_secret, master_chain, master_public_key, master_public_key_compressed = bip32_init(seed)
-        assert self.mpk == (master_public_key.encode('hex'), master_chain.encode('hex'))
+        assert self.mpk == (
+            master_public_key.encode('hex'), master_chain.encode('hex')
+        )
 
     def get_input_info(self, sequence):
         if not self.mpk2:
@@ -587,41 +674,49 @@ class BIP32Sequence:
         elif not self.mpk3:
             pubkey1 = self.get_pubkey(sequence)
             pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
-            pk_addr = public_key_to_bc_address( pubkey1.decode('hex') ) # we need to return that address to get the right private key
+            # we need to return that address to get the right private key
+            pk_addr = public_key_to_bc_address(pubkey1.decode('hex'))
             redeemScript = Transaction.multisig_script([pubkey1, pubkey2], 2)['redeemScript']
         else:
             pubkey1 = self.get_pubkey(sequence)
             pubkey2 = self.get_pubkey(sequence, mpk=self.mpk2)
             pubkey3 = self.get_pubkey(sequence, mpk=self.mpk3)
-            pk_addr = public_key_to_bc_address( pubkey1.decode('hex') ) # we need to return that address to get the right private key
-            redeemScript = Transaction.multisig_script([pubkey1, pubkey2, pubkey3], 2)['redeemScript']
+            pk_addr = public_key_to_bc_address(pubkey1.decode('hex'))  # we need to return that address to get the right private key
+            redeemScript = Transaction.multisig_script(
+                [pubkey1, pubkey2, pubkey3], 2
+            )['redeemScript']
         return pk_addr, redeemScript
 
 ################################## transactions
 
 MIN_RELAY_TX_FEE = 10000
 
+
 class Transaction:
-    
     def __init__(self, raw):
         self.raw = raw
         self.deserialize()
         self.inputs = self.d['inputs']
         self.outputs = self.d['outputs']
-        self.outputs = map(lambda x: (x['address'],x['value']), self.outputs)
+        self.outputs = map(lambda x: (x['address'], x['value']), self.outputs)
         self.input_info = None
         self.is_complete = True
-        
+
     @classmethod
     def from_io(klass, inputs, outputs):
-        raw = klass.serialize(inputs, outputs, for_sig = -1) # for_sig=-1 means do not sign
+        # for_sig=-1 means do not sign
+        raw = klass.serialize(inputs, outputs, for_sig=-1)
         self = klass(raw)
         self.is_complete = False
         self.inputs = inputs
         self.outputs = outputs
         extras = []
         for i in self.inputs:
-            e = { 'txid':i['tx_hash'], 'vout':i['index'], 'scriptPubKey':i.get('raw_output_script') }
+            e = {
+                'txid': i['tx_hash'],
+                'vout': i['index'],
+                'scriptPubKey': i.get('raw_output_script')
+            }
             extras.append(e)
         self.input_info = extras
         return self
@@ -632,117 +727,125 @@ class Transaction:
     @classmethod
     def multisig_script(klass, public_keys, num=None):
         n = len(public_keys)
-        if num is None: num = n
+        if num is None:
+            num = n
         # supports only "2 of 2", and "2 of 3" transactions
-        assert num <= n and n in [2,3]
-    
-        if num==2:
+        assert num <= n and n in [2, 3]
+
+        if num == 2:
             s = '52'
         elif num == 3:
             s = '53'
         else:
             raise
-    
+
         for k in public_keys:
             s += var_int(len(k)/2)
             s += k
-        if n==2:
+        if n == 2:
             s += '52'
-        elif n==3:
+        elif n == 3:
             s += '53'
         else:
             raise
         s += 'ae'
 
-        out = { "address": hash_160_to_bc_address(hash_160(s.decode('hex')), 5), "redeemScript":s }
+        out = {
+            "address": hash_160_to_bc_address(hash_160(s.decode('hex')), 5),
+            "redeemScript": s
+        }
         return out
 
     @classmethod
-    def serialize( klass, inputs, outputs, for_sig = None ):
+    def serialize(klass, inputs, outputs, for_sig=None):
 
-        s  = int_to_hex(1,4)                                         # version
-        s += var_int( len(inputs) )                                  # number of inputs
+        s = int_to_hex(1, 4)                                       # version
+        s += var_int(len(inputs))                                  # number of inputs
         for i in range(len(inputs)):
             txin = inputs[i]
-            s += txin['tx_hash'].decode('hex')[::-1].encode('hex')   # prev hash
-            s += int_to_hex(txin['index'],4)                         # prev index
+            s += txin['tx_hash'].decode('hex')[::-1].encode('hex') # prev hash
+            s += int_to_hex(txin['index'], 4)                      # prev index
 
             if for_sig is None:
                 pubkeysig = txin.get('pubkeysig')
                 if pubkeysig:
                     pubkey, sig = pubkeysig[0]
-                    sig = sig + chr(1)                               # hashtype
-                    script  = op_push( len(sig))
+                    sig = sig + chr(1)                             # hashtype
+                    script = op_push(len(sig))
                     script += sig.encode('hex')
-                    script += op_push( len(pubkey))
+                    script += op_push(len(pubkey))
                     script += pubkey.encode('hex')
                 else:
                     signatures = txin['signatures']
                     pubkeys = txin['pubkeys']
-                    script = '00'                                    # op_0
+                    script = '00'                                  # op_0
                     for sig in signatures:
                         sig = sig + '01'
                         script += op_push(len(sig)/2)
                         script += sig
 
-                    redeem_script = klass.multisig_script(pubkeys,2).get('redeemScript')
-                    script += op_push(len(redeem_script)/2)
+                    redeem_script = klass.multisig_script(
+                        pubkeys, 2
+                    ).get('redeemScript')
+                    script += op_push(len(redeem_script) / 2)
                     script += redeem_script
 
-            elif for_sig==i:
+            elif for_sig == i:
                 if txin.get('redeemScript'):
-                    script = txin['redeemScript']                    # p2sh uses the inner script
+                    script = txin['redeemScript']             # p2sh uses the inner script
                 else:
-                    script = txin['raw_output_script']               # scriptsig
+                    script = txin['raw_output_script']        # scriptsig
             else:
-                script=''
-            s += var_int( len(script)/2 )                            # script length
+                script = ''
+            s += var_int(len(script)/2)                       # script length
             s += script
-            s += "ffffffff"                                          # sequence
+            s += "ffffffff"                                   # sequence
 
-        s += var_int( len(outputs) )                                 # number of outputs
+        s += var_int(len(outputs))                            # number of outputs
         for output in outputs:
             addr, amount = output
-            s += int_to_hex( amount, 8)                              # amount
+            s += int_to_hex(amount, 8)                        # amount
             addrtype, hash_160 = bc_address_to_hash_160(addr)
             if addrtype == config.chain.pubkey_version:
-                script = '76a9'                                      # op_dup, op_hash_160
-                script += '14'                                       # push 0x14 bytes
+                script = '76a9'                               # op_dup,
+                                                              # op_hash_160
+                script += '14'                                # push 0x14 bytes
                 script += hash_160.encode('hex')
-                script += '88ac'                                     # op_equalverify, op_checksig
+                script += '88ac'                              # op_equalverify,
+                                                              # op_checksig
             elif addrtype == config.chain.script_version:
-                script = 'a9'                                        # op_hash_160
-                script += '14'                                       # push 0x14 bytes
+                script = 'a9'                                 # op_hash_160
+                script += '14'                                # push 0x14 bytes
                 script += hash_160.encode('hex')
-                script += '87'                                       # op_equal
+                script += '87'                                # op_equal
             else:
                 raise
-            
-            s += var_int( len(script)/2 )                           #  script length
-            s += script                                             #  script
-        s += int_to_hex(0,4)                                        #  lock time
+
+            s += var_int(len(script)/2)                       # script length
+            s += script                                       # script
+        s += int_to_hex(0, 4)                                 # lock time
         if for_sig is not None and for_sig != -1:
-            s += int_to_hex(1, 4)                                   #  hash type
+            s += int_to_hex(1, 4)                             # hash type
         return s
 
-
-    def for_sig(self,i):
-        return self.serialize(self.inputs, self.outputs, for_sig = i)
-
+    def for_sig(self, i):
+        return self.serialize(self.inputs, self.outputs, for_sig=i)
 
     def hash(self):
-        return Hash(self.raw.decode('hex') )[::-1].encode('hex')
+        return Hash(self.raw.decode('hex'))[::-1].encode('hex')
 
     def sign(self, private_keys):
         import deserialize
 
         for i in range(len(self.inputs)):
             txin = self.inputs[i]
-            tx_for_sig = self.serialize( self.inputs, self.outputs, for_sig = i )
+            tx_for_sig = self.serialize(self.inputs, self.outputs, for_sig=i)
 
             if txin.get('redeemScript'):
                 # 1 parse the redeem script
-                num, redeem_pubkeys = deserialize.parse_redeemScript(txin.get('redeemScript'))
+                num, redeem_pubkeys = deserialize.parse_redeemScript(
+                    txin.get('redeemScript')
+                )
                 self.inputs[i]["pubkeys"] = redeem_pubkeys
 
                 # build list of public/private keys
@@ -751,37 +854,53 @@ class Transaction:
                     compressed = is_compressed(sec)
                     pkey = regenerate_key(sec)
                     pubkey = GetPubKey(pkey.pubkey, compressed)
-                    keypairs[ pubkey.encode('hex') ] = sec
+                    keypairs[pubkey.encode('hex')] = sec
 
                 # list of already existing signatures
-                signatures = txin.get("signatures",[])
-                print_error("signatures",signatures)
+                signatures = txin.get("signatures", [])
+                print_error("signatures", signatures)
 
                 for pubkey in redeem_pubkeys:
-                    public_key = ecdsa.VerifyingKey.from_string(pubkey[2:].decode('hex'), curve = SECP256k1)
+                    public_key = ecdsa.VerifyingKey.from_string(
+                        pubkey[2:].decode('hex'), curve=SECP256k1
+                    )
                     for s in signatures:
                         try:
-                            public_key.verify_digest( s.decode('hex')[:-1], Hash( tx_for_sig.decode('hex') ), sigdecode = ecdsa.util.sigdecode_der)
+                            public_key.verify_digest(
+                                s.decode('hex')[:-1],
+                                Hash(tx_for_sig.decode('hex')),
+                                sigdecode=ecdsa.util.sigdecode_der
+                            )
                             break
                         except ecdsa.keys.BadSignatureError:
                             continue
                     else:
-                        # check if we have a key corresponding to the redeem script
+                        # check if we have a key
+                        # corresponding to the redeem script
                         if pubkey in keypairs.keys():
                             # add signature
                             sec = keypairs[pubkey]
                             compressed = is_compressed(sec)
                             pkey = regenerate_key(sec)
                             secexp = pkey.secret
-                            private_key = ecdsa.SigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
+                            private_key = ecdsa.SigningKey.from_secret_exponent(
+                                secexp, curve=SECP256k1
+                            )
                             public_key = private_key.get_verifying_key()
-                            sig = private_key.sign_digest( Hash( tx_for_sig.decode('hex') ), sigencode = ecdsa.util.sigencode_der )
-                            assert public_key.verify_digest( sig, Hash( tx_for_sig.decode('hex') ), sigdecode = ecdsa.util.sigdecode_der)
-                            signatures.append( sig.encode('hex') )
-                        
+                            sig = private_key.sign_digest(
+                                Hash(tx_for_sig.decode('hex')),
+                                sigencode=ecdsa.util.sigencode_der
+                            )
+                            assert public_key.verify_digest(
+                                sig,
+                                Hash(tx_for_sig.decode('hex')),
+                                sigdecode=ecdsa.util.sigdecode_der
+                            )
+                            signatures.append(sig.encode('hex'))
+
                 # for p2sh, pubkeysig is a tuple (may be incomplete)
                 self.inputs[i]["signatures"] = signatures
-                print_error("signatures",signatures)
+                print_error("signatures", signatures)
                 self.is_complete = len(signatures) == num
 
             else:
@@ -790,18 +909,26 @@ class Transaction:
                 pkey = regenerate_key(sec)
                 secexp = pkey.secret
 
-                private_key = ecdsa.SigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
+                private_key = ecdsa.SigningKey.from_secret_exponent(
+                    secexp, curve=SECP256k1
+                )
                 public_key = private_key.get_verifying_key()
                 pkey = EC_KEY(secexp)
                 pubkey = GetPubKey(pkey.pubkey, compressed)
-                sig = private_key.sign_digest( Hash( tx_for_sig.decode('hex') ), sigencode = ecdsa.util.sigencode_der )
-                assert public_key.verify_digest( sig, Hash( tx_for_sig.decode('hex') ), sigdecode = ecdsa.util.sigdecode_der)
+                sig = private_key.sign_digest(
+                    Hash(tx_for_sig.decode('hex')),
+                    sigencode=ecdsa.util.sigencode_der
+                )
+                assert public_key.verify_digest(
+                    sig,
+                    Hash(tx_for_sig.decode('hex')),
+                    sigdecode=ecdsa.util.sigdecode_der
+                )
 
                 self.inputs[i]["pubkeysig"] = [(pubkey, sig)]
                 self.is_complete = True
 
-        self.raw = self.serialize( self.inputs, self.outputs )
-
+        self.raw = self.serialize(self.inputs, self.outputs)
 
     def deserialize(self):
         import deserialize
@@ -809,12 +936,11 @@ class Transaction:
         vds.write(self.raw.decode('hex'))
         self.d = deserialize.parse_Transaction(vds)
         return self.d
-    
 
     def has_address(self, addr):
         found = False
         for txin in self.inputs:
-            if addr == txin.get('address'): 
+            if addr == txin.get('address'):
                 found = True
                 break
         for txout in self.outputs:
@@ -822,7 +948,6 @@ class Transaction:
                 found = True
                 break
         return found
-
 
     def get_value(self, addresses, prevout_values):
         # return the balance for that tx
@@ -837,8 +962,8 @@ class Transaction:
             if addr in addresses:
                 is_send = True
                 is_relevant = True
-                key = item['prevout_hash']  + ':%d'%item['prevout_n']
-                value = prevout_values.get( key )
+                key = item['prevout_hash'] + ':%d' % item['prevout_n']
+                value = prevout_values.get(key)
                 if value is None:
                     is_pruned = True
                 else:
@@ -846,8 +971,9 @@ class Transaction:
             else:
                 is_partial = True
 
-        if not is_send: is_partial = False
-                    
+        if not is_send:
+            is_partial = False
+
         for item in self.outputs:
             addr, value = item
             v_out += value
@@ -880,33 +1006,35 @@ class Transaction:
     def as_dict(self):
         import json
         out = {
-            "hex":self.raw,
-            "complete":self.is_complete
-            }
+            "hex": self.raw,
+            "complete": self.is_complete
+        }
         if not self.is_complete:
             extras = []
             for i in self.inputs:
-                e = { 'txid':i['tx_hash'], 'vout':i['index'],
-                      'scriptPubKey':i.get('raw_output_script'),
-                      'KeyID':i.get('KeyID'),
-                      'redeemScript':i.get('redeemScript'),
-                      'signatures':i.get('signatures'),
-                      'pubkeys':i.get('pubkeys'),
-                      }
+                e = {
+                    'txid': i['tx_hash'],
+                    'vout': i['index'],
+                    'scriptPubKey': i.get('raw_output_script'),
+                    'KeyID': i.get('KeyID'),
+                    'redeemScript': i.get('redeemScript'),
+                    'signatures': i.get('signatures'),
+                    'pubkeys': i.get('pubkeys'),
+                }
                 extras.append(e)
             self.input_info = extras
 
             if self.input_info:
-                out['input_info'] = json.dumps(self.input_info).replace(' ','')
+                out['input_info'] = json.dumps(self.input_info)
+                out['input_info'] = out['input_info'].replace(' ', '')
 
         return out
-
 
     def requires_fee(self, verifier):
         # see https://en.bitcoin.it/wiki/Transaction_fees
         threshold = 57600000
         size = len(self.raw)/2
-        if size >= 10000: 
+        if size >= 10000:
             return True
 
         for o in self.outputs:
@@ -919,7 +1047,8 @@ class Transaction:
             sum += i["value"] * age
         priority = sum / size
         print_error(priority, threshold)
-        return priority < threshold 
+        return priority < threshold
+
 
 class HighDefWallet:
 
@@ -951,6 +1080,7 @@ class HighDefWallet:
     def root(seed):
         args = bip32_init(seed)
         return HighDefWallet(*args)
+
 
 class EllipticCurveKey:
 
@@ -1001,6 +1131,7 @@ class EllipticCurveKey:
     def address(self):
         return hash_160_to_bc_address(self.key_id)
 
+
 def output_script(address):
     addrtype, hash_160 = bc_address_to_hash_160(address)
     assert addrtype == config.chain.pubkey_version
@@ -1010,12 +1141,14 @@ def output_script(address):
     script += '\x88\xac'                # op_equalverify, op_checksig
     return script
 
+
 def input_script(signature, public_key):
     script = op_push(len(signature)).decode("hex")
     script += signature
     script += op_push(len(public_key)).decode("hex")
     script += public_key
     return script
+
 
 def sign_transaction_input(tx, input_index, key):
     sighash = generate_signature_hash(tx, input_index, key.address)
@@ -1024,10 +1157,12 @@ def sign_transaction_input(tx, input_index, key):
     public_key = key.public_key
     tx.inputs[input_index].script = input_script(signature, public_key)
 
+
 def copy_tx(tx):
     # This is a hack.
     raw_tx = tx.serialize()
     return models.Transaction.deserialize(raw_tx)
+
 
 def generate_signature_hash(parent_tx, input_index, prevout_address):
     script_code = output_script(prevout_address)
@@ -1040,12 +1175,14 @@ def generate_signature_hash(parent_tx, input_index, prevout_address):
     raw_tx = tx.serialize() + "\x01\x00\x00\x00"
     return Hash(raw_tx)
 
+
 def _derive_y_from_x(x, is_even):
-    alpha = (pow(x, 3, _p)  + _a * x + _b) % _p
+    alpha = (pow(x, 3, _p) + _a * x + _b) % _p
     beta = numbertheory.modular_sqrt(alpha, _p)
     if is_even == bool(beta & 1):
         return _p - beta
     return beta
+
 
 def decompress_public_key(public_key):
     prefix = public_key[0]
@@ -1058,6 +1195,7 @@ def decompress_public_key(public_key):
           '%064x' % x + \
           '%064x' % y
     return key.decode("hex")
+
 
 def diffie_hellman(e, Q):
     Q = decompress_public_key(Q)
@@ -1072,6 +1210,7 @@ def diffie_hellman(e, Q):
     assert len(result) == 33
     return result
 
+
 def convert_point(Q):
     Q = decompress_public_key(Q)[1:]
     assert len(Q) == 64
@@ -1084,10 +1223,12 @@ def convert_point(Q):
     curve = curve_secp256k1
     return ecdsa.ellipticcurve.Point(curve, Q_x, Q_y, ec_order)
 
+
 def point_add(Q, c):
     Q = convert_point(Q)
     c = string_to_number(c)
     return Q + c * generator_secp256k1
+
 
 def get_point_pubkey(point, compressed=False):
     if compressed:
@@ -1101,6 +1242,7 @@ def get_point_pubkey(point, compressed=False):
               '%064x' % point.y()
     return key.decode('hex')
 
+
 def add_mod_n(d, c):
     assert len(d) == 32
     # Truncate prefix byte
@@ -1108,4 +1250,3 @@ def add_mod_n(d, c):
     d = string_to_number(d)
     c = string_to_number(c)
     return number_to_string((d + c) % order, order)
-

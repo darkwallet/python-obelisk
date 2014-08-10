@@ -2,6 +2,7 @@ def hex2(n):
     x = '%x' % (n,)
     return ('0' * (len(x) % 2)) + x
 
+
 class Bitset:
 
     def __init__(self, size=0, value=0, binary=None):
@@ -55,4 +56,3 @@ if __name__ == "__main__":
     assert a == b
     assert c != a
     assert c != b
-

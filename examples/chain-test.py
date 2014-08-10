@@ -1,28 +1,33 @@
 import obelisk
-import os, sys
-
 from twisted.internet import reactor
+
 
 def tx_fetched(ec, tx):
     print "Tx:", ec, tx.encode("hex")
 
+
 def spend_fetched(ec, spend):
     print "Spend:", ec, spend
+
 
 def txidx_fetched(ec, height, index):
     print "Tx index:", ec, height, index
 
+
 def txhashes_fetched(ec, hashes):
     print "Tx hashes:", [h.encode("hex") for h in hashes]
 
+
 def height_fetched(ec, height):
     print "Height:", height
+
 
 def stealth_fetched(ec, result):
     print "Stealth:"
     for ephemkey, address, tx_hash in result:
         print "  ephemkey:", ephemkey.encode("hex"), "address:", address, \
             "tx_hash:", tx_hash.encode("hex")
+
 
 if __name__ == '__main__':
     client = obelisk.ObeliskOfLightClient("tcp://85.25.198.97:9091")
@@ -42,4 +47,3 @@ if __name__ == '__main__':
     client.fetch_last_height(height_fetched)
     client.fetch_stealth((2, 1763505291), stealth_fetched)
     reactor.run()
-

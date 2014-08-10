@@ -10,8 +10,9 @@ import obelisk
 # callbacks when notifications arrive.
 #
 # If you prefer to pass your own callbacks, don't pass the addresses to
-# the constructor, and call 'setup_block_sub' and/or 
+# the constructor, and call 'setup_block_sub' and/or
 # 'setup_transaction_sub' yourself.
+
 
 class ObeliskPubSubClient(obelisk.ObeliskOfLightClient):
     def on_raw_block(self, height, hash, header, tx_num, tx_hashes):
@@ -23,11 +24,11 @@ class ObeliskPubSubClient(obelisk.ObeliskOfLightClient):
         for output in tx.outputs:
             outputs.append(obelisk.util.format_satoshis(output.value))
         print "* tx", ", ".join(outputs)
-        
-
 
 if __name__ == '__main__':
-    c = ObeliskPubSubClient('tcp://85.25.198.97:9091', 'tcp://85.25.198.97:9093', 'tcp://85.25.198.97:9094')
+    c = ObeliskPubSubClient(
+        'tcp://85.25.198.97:9091',
+        'tcp://85.25.198.97:9093',
+        'tcp://85.25.198.97:9094'
+    )
     reactor.run()
-
-

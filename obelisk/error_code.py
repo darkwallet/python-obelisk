@@ -4,7 +4,7 @@ class obelisk_exception(Exception):
 
 
 class error_code(object):
-    
+
     service_stopped = 1
     operation_failed = 2
 
@@ -71,4 +71,3 @@ class error_code(object):
             if value == id:
                 return key
         return None
-

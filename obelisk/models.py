@@ -2,6 +2,7 @@ import bitcoin
 import struct
 import serialize
 
+
 class BlockHeader:
 
     def __init__(self):
@@ -30,9 +31,11 @@ class BlockHeader:
     def __repr__(self):
         return '<BlockHeader %s>' % (self.hash.encode("hex"),)
 
+
 #missing object at serialize.py
 class Block:
     pass
+
 
 class OutPoint(object):
     def __init__(self):
@@ -43,7 +46,8 @@ class OutPoint(object):
         return (len(self.hash) == 0) and (self.index == 0xffffffff)
 
     def __repr__(self):
-        return "OutPoint(hash=%s, index=%i)" % (self.hash.encode("hex"), self.index)
+        return "OutPoint(hash=%s, index=%i)" % \
+               (self.hash.encode("hex"), self.index)
 
     def serialize(self):
         return serialize.ser_output_point(self)
@@ -52,13 +56,17 @@ class OutPoint(object):
     def deserialize(bytes):
         return serialize.deser_output_point(bytes)
 
+
 class TxOut(object):
     def __init__(self):
         self.value = None
         self.script = ""
 
     def __repr__(self):
-        return "TxOut(value=%i.%08i script=%s)" % (self.value // 100000000, self.value % 100000000, self.script.encode("hex"))
+        return "TxOut(value=%i.%08i script=%s)" % \
+               (self.value // 100000000,
+                self.value % 100000000,
+                self.script.encode("hex"))
 
     def serialize(self):
         return serialize.ser_txout(self)
@@ -78,7 +86,10 @@ class TxIn(object):
         return self.sequence == 0xffffffff
 
     def __repr__(self):
-        return "TxIn(previous_output=%s script=%s sequence=%i)" % (repr(self.previous_output), self.script.encode("hex"), self.sequence)
+        return "TxIn(previous_output=%s script=%s sequence=%i)" %\
+               (repr(self.previous_output),
+                self.script.encode("hex"),
+                self.sequence)
 
     def serialize(self):
         return serialize.ser_txin(self)
@@ -86,6 +97,7 @@ class TxIn(object):
     @staticmethod
     def deserialize(bytes):
         return serialize.deser_txin(bytes)
+
 
 class Transaction:
     def __init__(self):
@@ -99,11 +111,16 @@ class Transaction:
             if not tin.is_final():
                 return False
         return True
+
     def is_coinbase(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()
 
     def __repr__(self):
-        return "Transaction(version=%i inputs=%s outputs=%s locktime=%i)" % (self.version, repr(self.inputs), repr(self.outputs), self.locktime)
+        return "Transaction(version=%i inputs=%s outputs=%s locktime=%i)" %\
+               (self.version,
+                repr(self.inputs),
+                repr(self.outputs),
+                self.locktime)
 
     def serialize(self):
         return serialize.ser_tx(self)
@@ -111,4 +128,3 @@ class Transaction:
     @staticmethod
     def deserialize(bytes):
         return serialize.deser_tx(bytes)
-

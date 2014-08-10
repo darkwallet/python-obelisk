@@ -1,12 +1,12 @@
 import zmq
 from twisted.internet import task
-from twisted.internet import reactor
 
 # Some versions of ZMQ have the error in a different module.
 try:
     zmq.error
 except AttributeError:
     zmq.error = zmq.core.error
+
 
 class ZmqSocket:
 
@@ -15,13 +15,13 @@ class ZmqSocket:
     def __init__(self, cb, version, type=zmq.DEALER):
         self._cb = cb
         self._type = type
-        if self._type=='SUB':
+        if self._type == 'SUB':
             self._type = zmq.SUB
 
     def connect(self, address):
         self._socket = ZmqSocket.context.socket(self._type)
         self._socket.connect(address)
-        if self._type==zmq.SUB:
+        if self._type == zmq.SUB:
             self._socket.setsockopt(zmq.SUBSCRIBE, '')
         l = task.LoopingCall(self.poll)
         l.start(0.1)
@@ -40,4 +40,3 @@ class ZmqSocket:
         if more:
             more = zmq.SNDMORE
         self._socket.send(data, more)
-
