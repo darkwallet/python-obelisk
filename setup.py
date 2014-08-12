@@ -1,9 +1,10 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name='python-obelisk',
-    version="0.1.2",
-    install_requires=['ecdsa', 'pyzmq'],
+    version="0.1.3",
+    install_requires=['twisted', 'ecdsa', 'pyzmq'],
+    packages=['obelisk'],
     maintainer='Dionysis Zindros',
     maintainer_email='dionyziz@gmail.com',
     zip_safe=False,

@@ -1,3 +1,4 @@
+v0.1.3, 2014-08-12 -- Fix inclusion of package list of project so that library is importable, include twisted as dependency.
 v0.1.2, 2014-08-10 -- Include ecdsa and zmq requirements in installation.
 v0.1.1, 2014-08-10 -- Package as pip package.
 v0.1.0, 2013-09-30 -- Initial release.
