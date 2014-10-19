@@ -751,7 +751,7 @@ class Transaction:
         s += 'ae'
 
         out = {
-            "address": hash_160_to_bc_address(hash_160(s.decode('hex')), 5),
+            "address": hash_160_to_bc_address(hash_160(s.decode('hex')), config.chain.script_version),
             "redeemScript": s
         }
         return out
