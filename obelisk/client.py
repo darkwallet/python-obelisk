@@ -21,6 +21,16 @@ def pack_block_index(index):
     else:
         raise ValueError("Unknown index type")
 
+def binary_str_to_bytes(str):
+    split = lambda str: [str[x:x + 8] for x in range(0, len(str), 8)]
+    add_padding = lambda str: str + ((8 - len(str)) * "0")
+    result = []
+    for bin_byte in split(str):
+        bin_byte = add_padding(bin_byte)
+        value = int(bin_byte, 2)
+        assert value < 256
+        result.append(value)
+    return tuple(result)
 
 class ObeliskOfLightClient(ClientBase):
     valid_messages = [
@@ -135,9 +145,9 @@ class ObeliskOfLightClient(ClientBase):
             'blockchain.fetch_transaction_index', data, cb
         )
 
-    def fetch_block_transaction_hashes(self, index, cb):
+    def fetch_block_transaction_hashes(self, tx_hash, cb):
         """Fetches list of transaction hashes in a block by block hash."""
-        data = pack_block_index(index)
+        data = serialize.ser_hash(tx_hash)
         self.send_command(
             'blockchain.fetch_block_transaction_hashes', data, cb
         )
@@ -159,9 +169,12 @@ class ObeliskOfLightClient(ClientBase):
         height, and may also include results from earlier blocks.
         It is provided as an optimisation. All results at and after
         from_height are guaranteed to be returned however."""
-        number_bits, bitfield = prefix
-        data = struct.pack('<BII', number_bits, bitfield, from_height)
-        assert len(data) == 9
+        values = binary_str_to_bytes(prefix)
+        number_bits = len(prefix)
+        data = struct.pack('<B', number_bits)
+        for value in values:
+            data += struct.pack('<B', value)
+        data += struct.pack('<I', from_height)
         self.send_command('blockchain.fetch_stealth', data, cb)
 
     # receive handlers
@@ -174,18 +187,15 @@ class ObeliskOfLightClient(ClientBase):
     def _on_fetch_history(self, data):
         error = unpack_error(data)
         # parse results
-        rows = self.unpack_table("<32sIIQ32sII", data, 4)
+        rows = self.unpack_table("<B32sIIQ", data, 4)
         history = []
-        for row in rows:
-            o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
-            o_hash = o_hash[::-1]
-            s_hash = s_hash[::-1]
-            if s_index == 4294967295:
-                s_hash = None
-                s_index = None
-                s_height = None
-            history.append(
-                (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
+        for id, hash, index, height, value in rows:
+            if id == 0:
+                id = False
+            else:
+                id = True
+            hash = hash[::-1]
+            history.append((id, hash, index, height, value))
         return (error, history)
 
     def _on_fetch_last_height(self, data):
@@ -221,11 +231,11 @@ class ObeliskOfLightClient(ClientBase):
 
     def _on_fetch_stealth(self, data):
         error = unpack_error(data)
-        raw_rows = self.unpack_table("<33sB20s32s", data, 4)
+        raw_rows = self.unpack_table("<32s20s32s", data, 4)
         rows = []
-        for ephemkey, address_version, address_hash, tx_hash in raw_rows:
-            address = bitcoin.hash_160_to_bc_address(
-                address_hash[::-1], address_version)
+        for ephemkey, address, tx_hash in raw_rows:
+            ephemkey = ephemkey[::-1]
+            address = address[::-1]
             tx_hash = tx_hash[::-1]
             rows.append((ephemkey, address, tx_hash))
         return (error, rows)

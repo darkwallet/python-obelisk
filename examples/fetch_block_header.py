@@ -2,7 +2,7 @@ import obelisk
 from twisted.internet import reactor
 
 if __name__ == '__main__':
-    c = obelisk.ObeliskOfLightClient("tcp://obelisk.unsystem.net:9091")
+    c = obelisk.ObeliskOfLightClient("tcp://localhost:9091")
     h = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
 
     def cb(*args):
