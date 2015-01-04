@@ -38,7 +38,9 @@ def spend_checksum(hash, index):
     assert len(hash) == 32
     assert len(index_bytes) == 4
     combined = index_bytes + hash[4:8]
-    return struct.unpack("<Q", combined)
+    value = struct.unpack("<Q", combined)[0]
+    # value & (2**n - 1) is the same as value % 2**n
+    return value & (2**63 - 1)
 
 class PointIdent:
     Output = False
