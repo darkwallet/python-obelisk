@@ -32,6 +32,18 @@ def binary_str_to_bytes(str):
         result.append(value)
     return tuple(result)
 
+def spend_checksum(hash, index):
+    hash = hash[::-1]
+    index_bytes = struct.pack("<I", index)
+    assert len(hash) == 32
+    assert len(index_bytes) == 4
+    combined = index_bytes + hash[4:8]
+    return struct.unpack("<Q", combined)
+
+class PointIdent:
+    Output = False
+    Spend = True
+
 class ObeliskOfLightClient(ClientBase):
     valid_messages = [
         'fetch_block_header',

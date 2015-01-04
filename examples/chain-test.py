@@ -25,6 +25,10 @@ def history_fetched(ec, history):
     print "History:"
     for id, hash, index, height, value in history:
         print id, hash.encode("hex") + ":" + str(index), height, value
+        if id == obelisk.PointIdent.Output:
+            print "  checksum =", obelisk.spend_checksum(hash, index)
+        # elif id == obelisk.PointIdent.Spend:
+        #     ... do something
 
 def stealth_fetched(ec, result):
     print "Stealth:"
