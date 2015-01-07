@@ -110,6 +110,31 @@ class ObeliskOfLightClient(ClientBase):
         data = pack_block_index(index)
         self.send_command('blockchain.fetch_block_header', data, cb)
 
+    def fetch_history2(self, address, cb, from_height=0):
+        """Fetches history for an address. cb is a callback which
+        accepts an error code, and a list of rows consisting of:
+
+            id (obelisk.PointIdent.output or spend)
+            point (hash and index)
+            block height
+            value / checksum
+
+        If the row is for an output then the last item is the value.
+        Otherwise it is a checksum of the previous output point, so
+        spends can be matched to the rows they spend.
+        Use spend_checksum(output_hash, output_index) to compute
+        output point checksums."""
+        address_version, address_hash = \
+            bitcoin.bc_address_to_hash_160(address)
+
+        # prepare parameters
+        data = struct.pack('B', address_version)    # address version
+        data += address_hash                        # address
+        data += struct.pack('<I', from_height)      # from_height
+
+        # run command
+        self.send_command('address.fetch_history2', data, cb)
+
     def fetch_history(self, address, cb, from_height=0):
         """Fetches the output points, output values, corresponding input point
         spends and the block heights associated with a Bitcoin address.
@@ -198,7 +223,7 @@ class ObeliskOfLightClient(ClientBase):
         header = data[4:]
         return (error, header)
 
-    def _on_fetch_history(self, data):
+    def _on_fetch_history2(self, data):
         error = unpack_error(data)
         # parse results
         rows = self.unpack_table("<B32sIIQ", data, 4)
@@ -210,6 +235,23 @@ class ObeliskOfLightClient(ClientBase):
                 id = True
             hash = hash[::-1]
             history.append((id, hash, index, height, value))
+        return (error, history)
+
+    def _on_fetch_history(self, data):
+        error = unpack_error(data)
+        # parse results
+        rows = self.unpack_table("<32sIIQ32sII", data, 4)
+        history = []
+        for row in rows:
+            o_hash, o_index, o_height, value, s_hash, s_index, s_height = row
+            o_hash = o_hash[::-1]
+            s_hash = s_hash[::-1]
+            if s_index == 4294967295:
+                s_hash = None
+                s_index = None
+                s_height = None
+            history.append(
+                (o_hash, o_index, o_height, value, s_hash, s_index, s_height))
         return (error, history)
 
     def _on_fetch_last_height(self, data):
