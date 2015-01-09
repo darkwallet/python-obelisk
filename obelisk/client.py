@@ -69,8 +69,9 @@ class ObeliskOfLightClient(ClientBase):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
         # prepare parameters
-        data = struct.pack('B', address_version)          # address version
-        data += address_hash[::-1]               # address
+        data = struct.pack('B', 0)          # type = address
+        data += struct.pack('B', 160)       # bitsize
+        data += address_hash                # address
 
         # run command
         self.send_command('address.renew', data, cb)
@@ -78,9 +79,13 @@ class ObeliskOfLightClient(ClientBase):
     def subscribe_address(self, address, notification_cb=None, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
-        # prepare parameters. Use full prefix for now.
-        data = struct.pack('B', 160)            # bitsize
-        data += address_hash                    # hash bytes
+        # Prepare parameters. Use full prefix for now.
+        # Type. 0 is address, 1 is stealth.
+        data = struct.pack('B', 0)
+        # Bitsize
+        data += struct.pack('B', 160)
+        # Hash bytes
+        data += address_hash
 
         # run command
         self.send_command('address.subscribe', data, cb)
