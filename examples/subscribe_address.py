@@ -14,6 +14,6 @@ def print_event(address_version, address_hash, height, block_hash, tx):
 
 if __name__ == '__main__':
     c = obelisk.ObeliskOfLightClient('tcp://85.25.198.97:8081')
-    c.subscribe_address("1dice8EMZmqKvrGE4Qc9bUFf9PX3xaYDp", print_event)
+    c.subscribe_address("1LuckyY9fRzcJre7aou7ZhWVXktxjjBb9S", print_event)
 
     reactor.run()

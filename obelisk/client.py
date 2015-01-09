@@ -78,9 +78,9 @@ class ObeliskOfLightClient(ClientBase):
     def subscribe_address(self, address, notification_cb=None, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
-        # prepare parameters
-        data = struct.pack('B', address_version)          # address version
-        data += address_hash[::-1]               # address
+        # prepare parameters. Use full prefix for now.
+        data = struct.pack('B', 160)            # bitsize
+        data += address_hash[::-1]              # hash bytes
 
         # run command
         self.send_command('address.subscribe', data, cb)
@@ -300,7 +300,7 @@ class ObeliskOfLightClient(ClientBase):
         self.subscribed += 1
         error = unpack_error(data)
         if error:
-            print "Error subscribing"
+            print "Error subscribing", error
         if not self.subscribed % 1000:
             print "Subscribed ok", self.subscribed
         return (error, True)
