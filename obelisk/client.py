@@ -80,7 +80,7 @@ class ObeliskOfLightClient(ClientBase):
             bitcoin.bc_address_to_hash_160(address)
         # prepare parameters. Use full prefix for now.
         data = struct.pack('B', 160)            # bitsize
-        data += address_hash[::-1]              # hash bytes
+        data += address_hash                    # hash bytes
 
         # run command
         self.send_command('address.subscribe', data, cb)
