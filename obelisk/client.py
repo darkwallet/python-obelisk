@@ -213,10 +213,10 @@ class ObeliskOfLightClient(ClientBase):
         height, and may also include results from earlier blocks.
         It is provided as an optimisation. All results at and after
         from_height are guaranteed to be returned however."""
-        values = binary_str_to_bytes(prefix)
-        number_bits = len(prefix)
+        assert len(prefix) >= 2
+        number_bits = prefix[0]
         data = struct.pack('<B', number_bits)
-        for value in values:
+        for value in prefix[1:]:
             data += struct.pack('<B', value)
         data += struct.pack('<I', from_height)
         self.send_command('blockchain.fetch_stealth', data, cb)
