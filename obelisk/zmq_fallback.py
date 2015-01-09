@@ -27,14 +27,18 @@ class ZmqSocket:
         l.start(0.1)
 
     def poll(self):
+        # keep polling till we have no more data
+        while self.poll_once():
+            pass
+
+    def poll_once(self):
         try:
             data = self._socket.recv(flags=zmq.NOBLOCK)
         except zmq.error.ZMQError:
-            return
+            return False
         more = self._socket.getsockopt(zmq.RCVMORE)
         self._cb(data, more)
-        # keep polling till we have no more data
-        self.poll()
+        return True
 
     def send(self, data, more=0):
         if more:
