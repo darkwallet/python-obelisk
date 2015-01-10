@@ -213,7 +213,7 @@ class ObeliskOfLightClient(ClientBase):
         height, and may also include results from earlier blocks.
         It is provided as an optimisation. All results at and after
         from_height are guaranteed to be returned however."""
-        assert len(prefix) >= 2
+        assert len(prefix) >= 1
         number_bits = prefix[0]
         data = struct.pack('<B', number_bits)
         for value in prefix[1:]:
