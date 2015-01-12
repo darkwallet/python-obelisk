@@ -58,6 +58,7 @@ class ObeliskOfLightClient(ClientBase):
         'fetch_block_transaction_hashes',
         'fetch_block_height',
         'fetch_stealth',
+        'total_connections',
         'update',
         'renew'
     ]
@@ -221,6 +222,10 @@ class ObeliskOfLightClient(ClientBase):
         data += struct.pack('<I', from_height)
         self.send_command('blockchain.fetch_stealth', data, cb)
 
+    def total_connections(self, cb):
+        """Fetches the total number of connections."""
+        self.send_command('protocol.total_connections', cb=cb)
+
     # receive handlers
     def _on_fetch_block_header(self, data):
         error = unpack_error(data)
@@ -300,6 +305,11 @@ class ObeliskOfLightClient(ClientBase):
             tx_hash = tx_hash[::-1]
             rows.append((ephemkey, address, tx_hash))
         return (error, rows)
+
+    def _on_total_connections(self, data):
+        error = unpack_error(data)
+        height = struct.unpack('<I', data[4:])[0]
+        return (error, height)
 
     def _on_subscribe(self, data):
         self.subscribed += 1
