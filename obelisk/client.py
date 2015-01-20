@@ -50,6 +50,7 @@ class ObeliskOfLightClient(ClientBase):
     valid_messages = [
         'fetch_block_header',
         'fetch_history',
+        'fetch_history2',
         'subscribe',
         'fetch_last_height',
         'fetch_transaction',
