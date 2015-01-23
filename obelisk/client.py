@@ -334,7 +334,7 @@ class ObeliskOfLightClient(ClientBase):
 
     def _on_update(self, data):
         address_version = struct.unpack_from('B', data, 0)[0]
-        address_hash = data[1:21][::-1]
+        address_hash = data[1:21]
 
         height = struct.unpack_from('I', data, 21)[0]
         block_hash = data[25:57]
