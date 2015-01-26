@@ -21,17 +21,6 @@ def pack_block_index(index):
     else:
         raise ValueError("Unknown index type")
 
-def binary_str_to_bytes(str):
-    split = lambda str: [str[x:x + 8] for x in range(0, len(str), 8)]
-    add_padding = lambda str: str + ((8 - len(str)) * "0")
-    result = []
-    for bin_byte in split(str):
-        bin_byte = add_padding(bin_byte)
-        value = int(bin_byte, 2)
-        assert value < 256
-        result.append(value)
-    return tuple(result)
-
 def spend_checksum(hash, index):
     hash = hash[::-1]
     index_bytes = struct.pack("<I", index)
