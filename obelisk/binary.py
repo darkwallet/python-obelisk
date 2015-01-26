@@ -1,13 +1,13 @@
 def binary_str_to_bytes(str):
     split = lambda str: [str[x:x + 8] for x in range(0, len(str), 8)]
     add_padding = lambda str: str + ((8 - len(str)) * "0")
-    result = []
+    result = ""
     for bin_byte in split(str):
         bin_byte = add_padding(bin_byte)
         value = int(bin_byte, 2)
         assert value < 256
-        result.append(value)
-    return tuple(result)
+        result += chr(value)
+    return result
 
 # For more info see libbitcoin/include/bitcoin/bitcoin/utility/binary.hpp
 class Binary:
@@ -30,16 +30,16 @@ class Binary:
         return cls(len(repr), binary_str_to_bytes(repr))
 
     def resize(self, size):
-        self._size_ = size;
-        blks_size = blocks_size(size_)
+        self._size = size
+        blks_size = Binary.blocks_size(self._size)
         self._blocks = self._blocks[:blks_size]
         # Pad with zero bytes any remaining space.
-        self._blocks += [0] * (blks_size - len(self._blocks))
+        self._blocks += "\x00" * (blks_size - len(self._blocks))
 
     def __getitem__(self, i):
         assert i < self._size
         block_index = i / Binary.BitsPerBlock
-        block = self._blocks[block_index]
+        block = ord(self._blocks[block_index])
         offset = i - (block_index * Binary.BitsPerBlock)
         bitmask = 1 << (Binary.BitsPerBlock - offset - 1)
         return (block & bitmask) > 0
@@ -80,4 +80,8 @@ if __name__ == "__main__":
     assert b == c
     assert b != d
     assert b == b_ext
+    print "(%s: %s)" % (b.size, b.blocks.encode("hex"))
+    print "Resizing", b, "to 3 bits..."
+    b.resize(3)
+    print "Result:", b
 

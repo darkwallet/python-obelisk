@@ -89,6 +89,36 @@ class ObeliskOfLightClient(ClientBase):
             if notification_cb not in subscriptions:
                 subscriptions.append(notification_cb)
 
+    def subscribe_prefix(self, prefix, notification_cb=None, cb=None):
+        # prefix = obelisk.Binary.from_string("1011110101")
+        # https://wiki.unsystem.net/en/index.php/DarkWallet/Subscriber
+
+        # Prepare parameters.
+        # Type. 0 is address, 1 is stealth.
+        data = struct.pack('B', 0)
+        # Bitsize
+        data += struct.pack('B', prefix.size)
+        # Blocks
+
+        # run command
+        self.send_command('address.subscribe', data, cb)
+        data += prefix.blocks
+
+    def subscribe_stealth(self, prefix, notification_cb=None, cb=None):
+        # prefix = obelisk.Binary.from_string("1011110101")
+        # https://wiki.unsystem.net/en/index.php/DarkWallet/Subscriber
+
+        # Prepare parameters.
+        # Type. 0 is address, 1 is stealth.
+        data = struct.pack('B', 1)
+        # Bitsize
+        data += struct.pack('B', prefix.size)
+        # Blocks
+
+        # run command
+        self.send_command('address.subscribe', data, cb)
+        data += prefix.blocks
+
     def unsubscribe_address(self, address, subscribed_cb, cb=None):
         address_version, address_hash = \
             bitcoin.bc_address_to_hash_160(address)
