@@ -4,6 +4,7 @@
 
 from bitcoin import public_key_to_bc_address, hash_160_to_bc_address, hash_encode, hash_160
 from util import print_error
+from config import chain
 #import socket
 
 #
@@ -426,7 +427,7 @@ def get_address_from_input_script(bytes):
                        dec2[2][1].encode('hex')]
             return (pubkeys,
                     signatures,
-                    hash_160_to_bc_address(hash_160(redeemScript), 5))
+                    hash_160_to_bc_address(hash_160(redeemScript), chain.script_version))
 
         # 2 of 3
         match2 = [opcodes.OP_2,
@@ -441,7 +442,7 @@ def get_address_from_input_script(bytes):
                        dec2[3][1].encode('hex')]
             return (pubkeys,
                     signatures,
-                    hash_160_to_bc_address(hash_160(redeemScript), 5))
+                    hash_160_to_bc_address(hash_160(redeemScript), chain.script_version))
 
     print_error("cannot find address in input script", bytes.encode('hex'))
     return [], [], "(None)"
@@ -470,6 +471,6 @@ def get_address_from_output_script(bytes):
     # p2sh
     match = [opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUAL]
     if match_decoded(decoded, match):
-        return hash_160_to_bc_address(decoded[1][1], 5)
+        return hash_160_to_bc_address(decoded[1][1], chain.script_version)
 
     return "(None)"
